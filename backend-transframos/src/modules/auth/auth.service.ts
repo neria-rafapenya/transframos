@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
-import ms from 'ms';
+import * as ms from 'ms';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { LogoutDto } from './dto/logout.dto';
 import { LoginDto } from './dto/login.dto';
@@ -150,7 +150,7 @@ export class AuthService {
     dto: LoginDto,
     ipAddress?: string,
     userAgent?: string,
-  ): Promise<AuthResponseDto> {
+  ): Promise<AuthResponseDto & { accessToken: string; refreshToken: string }> {
     const user = await this.usersService.validateUser(dto.email, dto.password);
 
     const session = await this.sessionsService.createSession({
@@ -179,7 +179,7 @@ export class AuthService {
   async refresh(
     payload: JwtPayload,
     dto: RefreshTokenDto,
-  ): Promise<AuthResponseDto> {
+  ): Promise<AuthResponseDto & { accessToken: string; refreshToken: string }> {
     await this.sessionsService.validateRefreshToken(
       payload.sessionId,
       dto.refreshToken,

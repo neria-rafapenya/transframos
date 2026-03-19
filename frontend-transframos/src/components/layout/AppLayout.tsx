@@ -12,8 +12,8 @@ const AppLayout = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
@@ -56,7 +56,7 @@ const AppLayout = () => {
           <div className="user-card">
             <div className="user-card__name">{user?.fullName ?? "Usuario"}</div>
             <div className="user-card__company">
-              {user?.companyName ?? "Empresa"}
+              {user?.email ?? "Sin email"}
             </div>
           </div>
 

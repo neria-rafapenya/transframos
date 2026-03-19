@@ -41,5 +41,10 @@ export function validateEnv(env: EnvRecord): EnvRecord {
   requireString(env, 'LLM_PROVIDER');
   requireString(env, 'OPENAI_BASE_URL');
 
+  requireString(env, 'COOKIE_ACCESS_TOKEN_NAME');
+  requireString(env, 'COOKIE_REFRESH_TOKEN_NAME');
+  requireString(env, 'COOKIE_SECURE');
+  requireString(env, 'COOKIE_SAME_SITE');
+
   return env;
 }

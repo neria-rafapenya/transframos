@@ -17,6 +17,7 @@ import { LlmAction } from '../modules/llm/entities/llm-action.entity';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [User, AuthSession, LlmAction],
+        entityPrefix: 'tra_',
         synchronize: false,
         logging: false,
       }),

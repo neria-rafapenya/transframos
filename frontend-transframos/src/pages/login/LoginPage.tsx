@@ -7,7 +7,7 @@ const LoginPage = () => {
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
 
-  const [email, setEmail] = useState("cliente@zumosrios.com");
+  const [email, setEmail] = useState("admin@transframos.local");
   const [password, setPassword] = useState("123456");
   const [error, setError] = useState("");
 
@@ -30,7 +30,7 @@ const LoginPage = () => {
       <div className="login-card">
         <div className="login-card__header">
           <h1>Portal Transframos Demo</h1>
-          <p>Acceso para clientes fidelizados</p>
+          <p>Acceso contra backend real</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -40,7 +40,7 @@ const LoginPage = () => {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="cliente@empresa.com"
+              placeholder="usuario@empresa.com"
             />
           </label>
 
@@ -67,9 +67,9 @@ const LoginPage = () => {
 
         <div className="login-help">
           <small>
-            Demo mock. Usa por defecto:
+            Credenciales de prueba:
             <br />
-            <strong>cliente@zumosrios.com</strong> / <strong>123456</strong>
+            <strong>admin@transframos.local</strong> / <strong>123456</strong>
           </small>
         </div>
       </div>
