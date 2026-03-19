@@ -1,0 +1,14 @@
+@use "./global";
+@import "bootstrap/scss/bootstrap";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #f3f4f6;
+  color: #111827;
+}
