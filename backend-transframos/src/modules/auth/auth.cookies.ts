@@ -7,6 +7,8 @@ export function getCookieConfig() {
     process.env.COOKIE_ACCESS_TOKEN_NAME ?? 'tra_access_token';
   const refreshTokenName =
     process.env.COOKIE_REFRESH_TOKEN_NAME ?? 'tra_refresh_token';
+  const sessionHintName =
+    process.env.COOKIE_SESSION_HINT_NAME ?? 'tra_session_hint';
 
   const secure = String(process.env.COOKIE_SECURE ?? 'false') === 'true';
 
@@ -15,6 +17,7 @@ export function getCookieConfig() {
   return {
     accessTokenName,
     refreshTokenName,
+    sessionHintName,
     secure,
     sameSite,
   };
@@ -27,7 +30,7 @@ export function setAuthCookies(
     refreshToken: string;
   },
 ): void {
-  const { accessTokenName, refreshTokenName, secure, sameSite } =
+  const { accessTokenName, refreshTokenName, sessionHintName, secure, sameSite } =
     getCookieConfig();
 
   response.cookie(accessTokenName, payload.accessToken, {
@@ -45,10 +48,18 @@ export function setAuthCookies(
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+
+  response.cookie(sessionHintName, '1', {
+    httpOnly: false,
+    secure,
+    sameSite,
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 }
 
 export function clearAuthCookies(response: Response): void {
-  const { accessTokenName, refreshTokenName, secure, sameSite } =
+  const { accessTokenName, refreshTokenName, sessionHintName, secure, sameSite } =
     getCookieConfig();
 
   response.clearCookie(accessTokenName, {
@@ -60,6 +71,13 @@ export function clearAuthCookies(response: Response): void {
 
   response.clearCookie(refreshTokenName, {
     httpOnly: true,
+    secure,
+    sameSite,
+    path: '/',
+  });
+
+  response.clearCookie(sessionHintName, {
+    httpOnly: false,
     secure,
     sameSite,
     path: '/',

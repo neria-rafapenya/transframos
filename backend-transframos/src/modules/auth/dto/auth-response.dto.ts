@@ -1,6 +1,11 @@
-import { UserResponseDto } from '../../users/dto/user-response.dto';
+import type { UserRole } from '../../../common/enums/user-role.enum';
 
 export class AuthResponseDto {
   sessionId!: string;
-  user!: UserResponseDto;
+  user!: {
+    id: string;
+    email: string;
+    fullName: string;
+    role: UserRole;
+  };
 }

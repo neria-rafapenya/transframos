@@ -1639,6 +1639,11 @@ uri-js@^4.2.2:
   dependencies:
     punycode "^2.1.0"
 
+vite-plugin-css-injected-by-js@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.npmmirror.com/vite-plugin-css-injected-by-js/-/vite-plugin-css-injected-by-js-4.0.1.tgz#ed69dd8f04800f9e3c7a17c3a2e3819eede6092e"
+  integrity sha512-WfyRojojQyAO/KzWf+efcXpTPv6zJPXaRmr9EYq5a4v5I3PWCR7kR01hiri2lW6+rHm3a57kpwsf+iahIJi1Qw==
+
 vite@^8.0.1:
   version "8.0.1"
   resolved "https://registry.npmmirror.com/vite/-/vite-8.0.1.tgz#015cef9a747c07c0cf9cf553f37571885504e9d3"

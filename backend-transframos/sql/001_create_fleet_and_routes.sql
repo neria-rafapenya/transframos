@@ -1,0 +1,5 @@
+-- Este entorno ya incluye tra_vehicles, tra_vehicle_availability y tra_routes.
+-- No se requieren cambios DDL para rutas ni disponibilidad.
+--
+-- Si necesitas verificar las rutas existentes:
+--   SELECT COUNT(*) FROM tra_routes;

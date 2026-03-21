@@ -173,10 +173,10 @@ export class UsersService {
   }
 
   async findActiveUserById(id: string): Promise<User> {
-    const user = await this.findById(id);
+    const user = await this.usersRepository.findById(id);
 
-    if (!user.isActive) {
-      throw new ForbiddenException('El usuario está inactivo');
+    if (!user || !user.isActive) {
+      throw new NotFoundException('Usuario no encontrado o inactivo');
     }
 
     return user;

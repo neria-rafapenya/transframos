@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 import { CreateLlmActionDto } from '../dto/create-llm-action.dto';
 import { LlmAction } from '../entities/llm-action.entity';
@@ -13,6 +14,7 @@ export class LlmActionsRepository {
 
   create(data: CreateLlmActionDto): LlmAction {
     return this.repository.create({
+      id: randomUUID(),
       userId: data.userId ?? null,
       provider: data.provider,
       model: data.model,

@@ -20,10 +20,21 @@ export class LlmService {
   ): Promise<LlmActionResponseDto> {
     const actionType = dto.actionType ?? 'generate_text';
     const startedAt = Date.now();
+    const temperature =
+      typeof dto.temperature === 'number' && dto.temperature >= 0
+        ? Math.min(dto.temperature, 2)
+        : 0.2;
+    const maxOutputTokens =
+      typeof dto.max_output_tokens === 'number' && dto.max_output_tokens >= 1
+        ? Math.min(dto.max_output_tokens, 2000)
+        : 400;
 
     const result = await this.llmProvider.generateText({
       prompt: dto.prompt,
       actionType,
+      instructions: dto.instructions,
+      temperature,
+      max_output_tokens: maxOutputTokens,
     });
 
     const actionDto: CreateLlmActionDto = {

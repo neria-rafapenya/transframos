@@ -21,6 +21,44 @@ function requireNumber(env: EnvRecord, key: string): number {
   return parsed;
 }
 
+function optionalNumber(env: EnvRecord, key: string): number | undefined {
+  const raw = env[key];
+
+  if (!raw || raw.trim().length === 0) {
+    return undefined;
+  }
+
+  const parsed = Number(raw);
+
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Environment variable ${key} must be a valid number`);
+  }
+
+  return parsed;
+}
+
+function optionalBoolean(env: EnvRecord, key: string): boolean | undefined {
+  const raw = env[key];
+
+  if (!raw || raw.trim().length === 0) {
+    return undefined;
+  }
+
+  const normalized = raw.trim().toLowerCase();
+
+  if (['true', '1', 'yes', 'y'].includes(normalized)) {
+    return true;
+  }
+
+  if (['false', '0', 'no', 'n'].includes(normalized)) {
+    return false;
+  }
+
+  throw new Error(
+    `Environment variable ${key} must be a valid boolean (true/false)`,
+  );
+}
+
 export function validateEnv(env: EnvRecord): EnvRecord {
   requireString(env, 'NODE_ENV');
   requireNumber(env, 'PORT');
@@ -39,7 +77,11 @@ export function validateEnv(env: EnvRecord): EnvRecord {
   requireString(env, 'CORS_ALLOWED_ORIGINS');
 
   requireString(env, 'LLM_PROVIDER');
+  requireString(env, 'OPENAI_API_KEY');
   requireString(env, 'OPENAI_BASE_URL');
+
+  optionalNumber(env, 'PRICING_FALLBACK_SPEED_KMH');
+  optionalBoolean(env, 'DB_SYNCHRONIZE');
 
   requireString(env, 'COOKIE_ACCESS_TOKEN_NAME');
   requireString(env, 'COOKIE_REFRESH_TOKEN_NAME');

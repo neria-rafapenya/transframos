@@ -18,12 +18,16 @@ export class SessionsRepository {
     return this.repository.save(session);
   }
 
-  findById(id: string): Promise<AuthSession | null> {
+  findById(id: string) {
     return this.repository.findOne({ where: { id } });
   }
 
-  findByUserId(userId: string): Promise<AuthSession[]> {
+  findByUserId(userId: string) {
     return this.repository.find({ where: { userId } });
+  }
+
+  revokeAllByUserId(userId: string) {
+    return this.repository.update({ userId }, { isRevoked: true });
   }
 
   async revokeByUserId(userId: string): Promise<void> {

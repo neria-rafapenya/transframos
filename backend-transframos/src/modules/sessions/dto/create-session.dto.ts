@@ -1,5 +1,7 @@
 export class CreateSessionDto {
   userId!: string;
-  ipAddress?: string | null;
+  refreshTokenHash?: string | null;
   userAgent?: string | null;
+  ipAddress?: string | null;
+  expiresAt?: Date | null;
 }

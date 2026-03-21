@@ -2,7 +2,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -11,40 +10,39 @@ import { UserRole } from '../../../common/enums/user-role.enum';
 import { AuthSession } from '../../sessions/entities/auth-session.entity';
 import { LlmAction } from '../../llm/entities/llm-action.entity';
 
-@Entity({ name: 'users' })
+@Entity({ name: 'tra_users' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
-  @Index('idx_users_email', { unique: true })
-  @Column({ type: 'varchar', length: 255 })
-  email!: string;
+  @Column({ name: 'email', type: 'varchar', length: 255, unique: true })
+  email: string;
 
   @Column({ name: 'password_hash', type: 'varchar', length: 255 })
-  passwordHash!: string;
+  passwordHash: string;
 
   @Column({ name: 'full_name', type: 'varchar', length: 255 })
-  fullName!: string;
+  fullName: string;
 
   @Column({
+    name: 'role',
     type: 'enum',
     enum: UserRole,
-    default: UserRole.CLIENT,
   })
-  role!: UserRole;
+  role: UserRole;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
-  isActive!: boolean;
+  isActive: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
+  createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
+  updatedAt: Date;
 
   @OneToMany(() => AuthSession, (session) => session.user)
-  sessions!: AuthSession[];
+  sessions: AuthSession[];
 
   @OneToMany(() => LlmAction, (llmAction) => llmAction.user)
-  llmActions!: LlmAction[];
+  llmActions: LlmAction[];
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/auth/auth.store";
+import Logotipo from "@/components/ui/Logotipo";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -28,9 +29,10 @@ const LoginPage = () => {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-card__header">
-          <h1>Portal Transframos Demo</h1>
-          <p>Acceso contra backend real</p>
+        <div className="login-card__header text-center">
+          <Logotipo width={188} height={48} color="#00A58F" />
+
+          <p>Asistente Inteligente de pedidos</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -64,14 +66,6 @@ const LoginPage = () => {
             {isLoading ? "Entrando..." : "Entrar"}
           </button>
         </form>
-
-        <div className="login-help">
-          <small>
-            Credenciales de prueba:
-            <br />
-            <strong>admin@transframos.local</strong> / <strong>123456</strong>
-          </small>
-        </div>
       </div>
     </div>
   );
