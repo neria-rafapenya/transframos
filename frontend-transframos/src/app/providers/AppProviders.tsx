@@ -41,7 +41,12 @@ const AppProviders = ({ children }: PropsWithChildren) => {
     return <>{content}</>;
   }
 
-  return <WidgetShell>{content}</WidgetShell>;
+  return (
+    <>
+      <div className="host-portal" />
+      <WidgetShell>{content}</WidgetShell>
+    </>
+  );
 };
 
 export default AppProviders;
