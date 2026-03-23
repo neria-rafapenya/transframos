@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/auth/auth.store";
 import Logotipo from "@/components/ui/Logotipo";
 
@@ -66,6 +66,11 @@ const LoginPage = () => {
             {isLoading ? "Entrando..." : "Entrar"}
           </button>
         </form>
+
+        <div className="login-card__footer text-center">
+          <span>¿Eres nuevo cliente? </span>
+          <Link to="/register">Crea tu cuenta</Link>
+        </div>
       </div>
     </div>
   );

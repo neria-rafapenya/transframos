@@ -3,12 +3,27 @@ export type AuthUser = {
   email: string;
   fullName: string;
   role: "admin" | "operator" | "client";
+  clientType: "fidelizado" | "nuevo";
   isActive: boolean;
+  dni?: string | null;
+  nif?: string | null;
+  companyName?: string | null;
+  companyHqAddress?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  contactPhoneAlt?: string | null;
+  contactEmail?: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 export type LoginRequestDto = {
+  email: string;
+  password: string;
+};
+
+export type RegisterRequestDto = {
+  fullName: string;
   email: string;
   password: string;
 };
@@ -29,7 +44,12 @@ export type AuthState = {
 export type AuthActions = {
   bootstrapAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (payload: {
+    fullName?: string;
+    password?: string;
+  }) => Promise<void>;
   clearSession: () => void;
 };
 

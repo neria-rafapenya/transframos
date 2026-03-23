@@ -10,6 +10,7 @@ const AppProviders = ({ children }: PropsWithChildren) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const navigate = useNavigate();
   const location = useLocation();
+  const isStandaloneSettings = location.pathname.startsWith("/settings");
 
   useEffect(() => {
     void bootstrapAuth();
@@ -25,20 +26,22 @@ const AppProviders = ({ children }: PropsWithChildren) => {
     }
   }, [isAuthenticated, isBootstrapping, location.pathname, navigate]);
 
-  return (
-    <WidgetShell>
-      {isBootstrapping ? (
-        <div className="widget-loading-screen">
-          <div className="widget-loading-card">
-            <h2>Inicializando sesión</h2>
-            <p>Comprobando credenciales y contexto del widget...</p>
-          </div>
-        </div>
-      ) : (
-        children
-      )}
-    </WidgetShell>
+  const content = isBootstrapping ? (
+    <div className="widget-loading-screen">
+      <div className="widget-loading-card">
+        <h2>Inicializando sesión</h2>
+        <p>Comprobando credenciales y contexto del widget...</p>
+      </div>
+    </div>
+  ) : (
+    children
   );
+
+  if (isStandaloneSettings) {
+    return <>{content}</>;
+  }
+
+  return <WidgetShell>{content}</WidgetShell>;
 };
 
 export default AppProviders;

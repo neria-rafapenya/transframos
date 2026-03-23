@@ -8,6 +8,7 @@ import { LogoutDto } from './dto/logout.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { RegisterDto } from './dto/register.dto';
 import { SessionsService } from '../sessions/sessions.service';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
@@ -152,6 +153,40 @@ export class AuthService {
     userAgent?: string,
   ): Promise<AuthResponseDto & { accessToken: string; refreshToken: string }> {
     const user = await this.usersService.validateUser(dto.email, dto.password);
+
+    const session = await this.sessionsService.createSession({
+      userId: user.id,
+      ipAddress: ipAddress ?? null,
+      userAgent: userAgent ?? null,
+    });
+
+    const tokens = await this.signTokens(user, session.id);
+
+    await this.sessionsService.attachTokens(
+      session.id,
+      tokens.accessJti,
+      tokens.refreshToken,
+      this.getRefreshExpiryDate(),
+    );
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      sessionId: session.id,
+      user: this.usersService.toUserResponse(user),
+    };
+  }
+
+  async register(
+    dto: RegisterDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<AuthResponseDto & { accessToken: string; refreshToken: string }> {
+    const user = await this.usersService.registerClient({
+      email: dto.email,
+      password: dto.password,
+      fullName: dto.fullName,
+    });
 
     const session = await this.sessionsService.createSession({
       userId: user.id,

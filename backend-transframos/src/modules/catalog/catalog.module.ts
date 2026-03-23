@@ -14,6 +14,10 @@ import { RouteEntity } from './entities/route.entity';
 import { TankEntity } from './entities/tank.entity';
 import { TankProductAuthorizationEntity } from './entities/tank-product-authorization.entity';
 import { VehicleTankEntity } from './entities/vehicle-tank.entity';
+import { VehicleRouteEntity } from './entities/vehicle-route.entity';
+import { RouteWaypointEntity } from './entities/route-waypoint.entity';
+import { RouteSuggestionService } from './services/route-suggestion.service';
+import { LlmModule } from '../llm/llm.module';
 
 @Module({
   imports: [
@@ -26,13 +30,16 @@ import { VehicleTankEntity } from './entities/vehicle-tank.entity';
       LoadingPointEntity,
       UnloadingPointEntity,
       RouteEntity,
+      RouteWaypointEntity,
       TankEntity,
       TankProductAuthorizationEntity,
       VehicleTankEntity,
+      VehicleRouteEntity,
     ]),
+    LlmModule,
   ],
   controllers: [CatalogController],
-  providers: [CatalogService, CatalogRepository],
-  exports: [CatalogService, CatalogRepository],
+  providers: [CatalogService, CatalogRepository, RouteSuggestionService],
+  exports: [CatalogService, CatalogRepository, RouteSuggestionService],
 })
 export class CatalogModule {}

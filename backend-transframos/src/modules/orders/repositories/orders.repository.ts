@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 import { DraftOrderEntity } from '../entities/draft-order.entity';
+import { OrderEntity } from '../entities/order.entity';
 
 type CreateDraftOrderParams = {
   quoteRequestId: string;
@@ -23,6 +24,8 @@ export class OrdersRepository {
   constructor(
     @InjectRepository(DraftOrderEntity)
     private readonly draftOrderRepository: Repository<DraftOrderEntity>,
+    @InjectRepository(OrderEntity)
+    private readonly orderRepository: Repository<OrderEntity>,
   ) {}
 
   async createDraftOrder(params: CreateDraftOrderParams) {
@@ -76,5 +79,69 @@ export class OrdersRepository {
     });
 
     return this.draftOrderRepository.save(merged);
+  }
+
+  async createOrder(params: {
+    id: string;
+    orderNumber: string;
+    clientId: string;
+    quoteId: string | null;
+    productId: string;
+    categoryId: string;
+    originLoadingPointId: string;
+    destinationUnloadingPointId: string;
+    requestedPickupDatetime: Date | null;
+    requestedDeliveryDatetime: Date | null;
+    confirmedPickupDatetime: Date | null;
+    confirmedDeliveryDatetime: Date | null;
+    orderedVolumeLiters: number;
+    orderedWeightTn: number | null;
+    serviceMode: string;
+    orderStatus: string;
+    priorityLevel: string | null;
+    clientReference: string | null;
+    internalNotes: string | null;
+  }) {
+    const entity = this.orderRepository.create({
+      id: params.id,
+      orderNumber: params.orderNumber,
+      clientId: params.clientId,
+      quoteId: params.quoteId,
+      productId: params.productId,
+      categoryId: params.categoryId,
+      originLoadingPointId: params.originLoadingPointId,
+      destinationUnloadingPointId: params.destinationUnloadingPointId,
+      requestedPickupDatetime: params.requestedPickupDatetime,
+      requestedDeliveryDatetime: params.requestedDeliveryDatetime,
+      confirmedPickupDatetime: params.confirmedPickupDatetime,
+      confirmedDeliveryDatetime: params.confirmedDeliveryDatetime,
+      orderedVolumeLiters: params.orderedVolumeLiters,
+      orderedWeightTn: params.orderedWeightTn,
+      serviceMode: params.serviceMode,
+      orderStatus: params.orderStatus,
+      priorityLevel: params.priorityLevel,
+      clientReference: params.clientReference,
+      internalNotes: params.internalNotes,
+    });
+
+    return this.orderRepository.save(entity);
+  }
+
+  async findOrderById(id: string) {
+    return this.orderRepository.findOne({ where: { id } });
+  }
+
+  async findOrderByClientReference(clientReference: string) {
+    return this.orderRepository.findOne({
+      where: { clientReference },
+    });
+  }
+
+  async findOrdersByClientId(clientId: string, limit = 50) {
+    return this.orderRepository.find({
+      where: { clientId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+    });
   }
 }

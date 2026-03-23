@@ -59,6 +59,16 @@ function optionalBoolean(env: EnvRecord, key: string): boolean | undefined {
   );
 }
 
+function optionalString(env: EnvRecord, key: string): string | undefined {
+  const raw = env[key];
+
+  if (!raw || raw.trim().length === 0) {
+    return undefined;
+  }
+
+  return raw.trim();
+}
+
 export function validateEnv(env: EnvRecord): EnvRecord {
   requireString(env, 'NODE_ENV');
   requireNumber(env, 'PORT');
@@ -81,7 +91,16 @@ export function validateEnv(env: EnvRecord): EnvRecord {
   requireString(env, 'OPENAI_BASE_URL');
 
   optionalNumber(env, 'PRICING_FALLBACK_SPEED_KMH');
+  optionalNumber(env, 'LLM_ROUTE_MIN_CONFIDENCE');
   optionalBoolean(env, 'DB_SYNCHRONIZE');
+  optionalString(env, 'SALES_CONTACT_EMAIL');
+  optionalNumber(env, 'HANDOFF_SOCKET_PORT');
+  optionalString(env, 'TELEGRAM_BOT_TOKEN');
+  optionalString(env, 'TELEGRAM_CHAT_ID');
+  optionalString(env, 'TELEGRAM_WEBHOOK_SECRET');
+  optionalBoolean(env, 'TELEGRAM_POLLING_ENABLED');
+  optionalNumber(env, 'TELEGRAM_POLLING_INTERVAL_MS');
+  optionalNumber(env, 'TELEGRAM_POLLING_TIMEOUT_SEC');
 
   requireString(env, 'COOKIE_ACCESS_TOKEN_NAME');
   requireString(env, 'COOKIE_REFRESH_TOKEN_NAME');

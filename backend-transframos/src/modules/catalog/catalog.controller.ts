@@ -69,4 +69,9 @@ export class CatalogController {
   async getCompatibilityRules() {
     return this.catalogService.getCompatibilityRules();
   }
+
+  @Get('admin/sandbox')
+  async getSandboxSnapshot() {
+    return this.catalogService.getSandboxSnapshot();
+  }
 }

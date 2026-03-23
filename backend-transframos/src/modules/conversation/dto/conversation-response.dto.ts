@@ -11,4 +11,5 @@ export class ConversationResponseDto {
   quoteRequest: unknown | null;
   topOption: unknown | null;
   validationSummary: Record<string, unknown> | null;
+  routePreview?: unknown | null;
 }

@@ -23,8 +23,14 @@ type UpdateQuoteRequestParams = {
   requestedProductId?: string | null;
   originLoadingPointId?: string | null;
   destinationUnloadingPointId?: string | null;
+  clientId?: string | null;
   validationStatus?: string;
   wizardStatus?: string;
+  suggestedRouteId?: string | null;
+  suggestedRouteCode?: string | null;
+  suggestedRouteConfidence?: number | null;
+  suggestedRouteRationale?: string | null;
+  suggestedRouteAccepted?: boolean | null;
 };
 
 @Injectable()
@@ -64,6 +70,11 @@ export class QuoteRepository {
       validationStatus: 'pending',
       deliveryDeadlineDatetime: null,
       wizardStatus: 'idle',
+      suggestedRouteId: null,
+      suggestedRouteCode: null,
+      suggestedRouteConfidence: null,
+      suggestedRouteRationale: null,
+      suggestedRouteAccepted: null,
     });
 
     return this.quoteRequestRepository.save(entity);
@@ -135,6 +146,10 @@ export class QuoteRepository {
         typeof params.destinationUnloadingPointId !== 'undefined'
           ? params.destinationUnloadingPointId
           : existing.destinationUnloadingPointId,
+      clientId:
+        typeof params.clientId !== 'undefined'
+          ? params.clientId
+          : existing.clientId,
       validationStatus:
         typeof params.validationStatus !== 'undefined'
           ? params.validationStatus
@@ -143,6 +158,26 @@ export class QuoteRepository {
         typeof params.wizardStatus !== 'undefined'
           ? params.wizardStatus
           : existing.wizardStatus,
+      suggestedRouteId:
+        typeof params.suggestedRouteId !== 'undefined'
+          ? params.suggestedRouteId
+          : existing.suggestedRouteId,
+      suggestedRouteCode:
+        typeof params.suggestedRouteCode !== 'undefined'
+          ? params.suggestedRouteCode
+          : existing.suggestedRouteCode,
+      suggestedRouteConfidence:
+        typeof params.suggestedRouteConfidence !== 'undefined'
+          ? params.suggestedRouteConfidence
+          : existing.suggestedRouteConfidence,
+      suggestedRouteRationale:
+        typeof params.suggestedRouteRationale !== 'undefined'
+          ? params.suggestedRouteRationale
+          : existing.suggestedRouteRationale,
+      suggestedRouteAccepted:
+        typeof params.suggestedRouteAccepted !== 'undefined'
+          ? params.suggestedRouteAccepted
+          : existing.suggestedRouteAccepted,
     });
 
     return this.quoteRequestRepository.save(merged);

@@ -133,6 +133,29 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
+  register: async (fullName: string, email: string, password: string) => {
+    set({ isLoading: true });
+
+    try {
+      const response = await authService.register({
+        fullName,
+        email,
+        password,
+      });
+
+      setSessionHint(true);
+      set({
+        user: response.user,
+        sessionId: response.sessionId,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
   logout: async () => {
     try {
       await authService.logout();
@@ -145,6 +168,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
         sessionId: null,
         isAuthenticated: false,
       });
+    }
+  },
+
+  updateProfile: async (payload) => {
+    const currentUser = useAuthStore.getState().user;
+    if (!currentUser) {
+      return;
+    }
+
+    set({ isLoading: true });
+
+    try {
+      const updated = await authService.updateUser(currentUser.id, payload);
+      set({
+        user: updated,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
     }
   },
 }));

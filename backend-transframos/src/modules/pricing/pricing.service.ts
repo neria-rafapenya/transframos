@@ -23,6 +23,27 @@ export class PricingService {
 
     const option = await this.pricingEngineService.buildOption(quoteRequest);
 
+    if (option.routeSuggestion) {
+      await this.quoteService.updateRouteSuggestion(quoteRequestId, {
+        suggestedRouteId: option.routeSuggestion.suggestedRouteId ?? null,
+        suggestedRouteCode: option.routeSuggestion.suggestedRouteCode ?? null,
+        suggestedRouteConfidence:
+          typeof option.routeSuggestion.suggestedRouteConfidence === 'number'
+            ? option.routeSuggestion.suggestedRouteConfidence
+            : null,
+        suggestedRouteRationale:
+          option.routeSuggestion.suggestedRouteRationale ?? null,
+        suggestedRouteAccepted:
+          typeof option.routeSuggestion.suggestedRouteAccepted === 'boolean'
+            ? option.routeSuggestion.suggestedRouteAccepted
+            : null,
+      });
+    }
+
+    if (!option.isFeasible) {
+      return null;
+    }
+
     return this.quoteService.createQuoteOption({
       quoteRequestId,
       vehicleTypeId: option.vehicleTypeId,

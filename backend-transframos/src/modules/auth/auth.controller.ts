@@ -13,6 +13,7 @@ import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 import { LoginDto } from './dto/login.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
@@ -29,6 +30,29 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.authService.login(
+      dto,
+      request.ip,
+      request.get('user-agent') ?? undefined,
+    );
+
+    setAuthCookies(response, {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    });
+
+    return {
+      sessionId: result.sessionId,
+      user: result.user,
+    };
+  }
+
+  @Post('register')
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.register(
       dto,
       request.ip,
       request.get('user-agent') ?? undefined,

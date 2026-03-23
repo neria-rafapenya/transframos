@@ -94,6 +94,12 @@ export class QuoteService {
       validationStatus?: string;
       wizardStatus?: string;
       quoteStatus?: string;
+      suggestedRouteId?: string | null;
+      suggestedRouteCode?: string | null;
+      suggestedRouteConfidence?: number | null;
+      suggestedRouteRationale?: string | null;
+      suggestedRouteAccepted?: boolean | null;
+      clientId?: string | null;
     },
   ) {
     const quoteRequest = await this.quoteRepository.findQuoteRequestById(id);
@@ -131,6 +137,12 @@ export class QuoteService {
             ? String(params.destinationLocationId)
             : null
           : undefined,
+      clientId:
+        typeof params.clientId !== 'undefined'
+          ? params.clientId !== null
+            ? String(params.clientId)
+            : null
+          : undefined,
       requestedLoadDate:
         typeof params.requestedPickupAt !== 'undefined'
           ? params.requestedPickupAt
@@ -152,6 +164,68 @@ export class QuoteService {
       wizardStatus:
         typeof params.wizardStatus !== 'undefined'
           ? params.wizardStatus
+          : undefined,
+      suggestedRouteId:
+        typeof params.suggestedRouteId !== 'undefined'
+          ? params.suggestedRouteId
+          : undefined,
+      suggestedRouteCode:
+        typeof params.suggestedRouteCode !== 'undefined'
+          ? params.suggestedRouteCode
+          : undefined,
+      suggestedRouteConfidence:
+        typeof params.suggestedRouteConfidence !== 'undefined'
+          ? params.suggestedRouteConfidence
+          : undefined,
+      suggestedRouteRationale:
+        typeof params.suggestedRouteRationale !== 'undefined'
+          ? params.suggestedRouteRationale
+          : undefined,
+      suggestedRouteAccepted:
+        typeof params.suggestedRouteAccepted !== 'undefined'
+          ? params.suggestedRouteAccepted
+          : undefined,
+    });
+  }
+
+  async updateRouteSuggestion(
+    id: string,
+    params: {
+      suggestedRouteId?: string | null;
+      suggestedRouteCode?: string | null;
+      suggestedRouteConfidence?: number | null;
+      suggestedRouteRationale?: string | null;
+      suggestedRouteAccepted?: boolean | null;
+    },
+  ) {
+    const quoteRequest = await this.quoteRepository.findQuoteRequestById(id);
+
+    if (!quoteRequest) {
+      throw new NotFoundException(
+        `No existe ninguna solicitud de presupuesto con id ${id}`,
+      );
+    }
+
+    return this.quoteRepository.updateQuoteRequest(id, {
+      suggestedRouteId:
+        typeof params.suggestedRouteId !== 'undefined'
+          ? params.suggestedRouteId
+          : undefined,
+      suggestedRouteCode:
+        typeof params.suggestedRouteCode !== 'undefined'
+          ? params.suggestedRouteCode
+          : undefined,
+      suggestedRouteConfidence:
+        typeof params.suggestedRouteConfidence !== 'undefined'
+          ? params.suggestedRouteConfidence
+          : undefined,
+      suggestedRouteRationale:
+        typeof params.suggestedRouteRationale !== 'undefined'
+          ? params.suggestedRouteRationale
+          : undefined,
+      suggestedRouteAccepted:
+        typeof params.suggestedRouteAccepted !== 'undefined'
+          ? params.suggestedRouteAccepted
           : undefined,
     });
   }

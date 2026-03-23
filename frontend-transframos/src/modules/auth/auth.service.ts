@@ -1,4 +1,9 @@
-import type { AuthResponseDto, AuthUser, LoginRequestDto } from "./auth.types";
+import type {
+  AuthResponseDto,
+  AuthUser,
+  LoginRequestDto,
+  RegisterRequestDto,
+} from "./auth.types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -48,6 +53,13 @@ export const authService = {
     });
   },
 
+  register(payload: RegisterRequestDto): Promise<AuthResponseDto> {
+    return request<AuthResponseDto>("/auth/register", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
   me(): Promise<AuthUser> {
     return request<AuthUser>("/auth/me");
   },
@@ -63,6 +75,16 @@ export const authService = {
     return request<{ success: true }>("/auth/logout", {
       method: "POST",
       body: {},
+    });
+  },
+
+  updateUser(
+    id: string,
+    payload: { fullName?: string; password?: string },
+  ): Promise<AuthUser> {
+    return request<AuthUser>(`/users/${id}`, {
+      method: "PATCH",
+      body: payload,
     });
   },
 };

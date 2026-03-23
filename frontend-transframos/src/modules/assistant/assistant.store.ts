@@ -8,6 +8,7 @@ import type {
   BackendWizardStep,
   ConversationResponse,
   OrderDraft,
+  RoutePreview,
   StartConversationPayload,
 } from "./assistant.types";
 
@@ -19,11 +20,15 @@ type AssistantStore = {
   quoteRequest: BackendQuoteRequest | null;
   topOption: BackendQuoteOption | null;
   validationSummary: BackendValidationSummary | null;
+  routePreview: RoutePreview | null;
   orderDraft: OrderDraft;
   isLoading: boolean;
   error: string | null;
   startConversation: (payload?: StartConversationPayload) => Promise<void>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (
+    content: string,
+    options?: { forceTramitar?: boolean },
+  ) => Promise<void>;
   refreshConversation: () => Promise<void>;
   resetConversation: () => void;
   clearError: () => void;
@@ -182,6 +187,7 @@ const applyConversationResponse = (
   | "quoteRequest"
   | "topOption"
   | "validationSummary"
+  | "routePreview"
   | "orderDraft"
   | "error"
 > => ({
@@ -199,6 +205,7 @@ const applyConversationResponse = (
   validationSummary: response.validationSummary,
   orderDraft: buildOrderDraftFromResponse(response),
   error: null,
+  routePreview: response.routePreview ?? null,
 });
 
 export const useAssistantStore = create<AssistantStore>((set, get) => ({
@@ -209,6 +216,7 @@ export const useAssistantStore = create<AssistantStore>((set, get) => ({
   quoteRequest: null,
   topOption: null,
   validationSummary: null,
+  routePreview: null,
   orderDraft: initialDraft,
   isLoading: false,
   error: null,
@@ -237,7 +245,7 @@ export const useAssistantStore = create<AssistantStore>((set, get) => ({
     }
   },
 
-  sendMessage: async (content) => {
+  sendMessage: async (content, options) => {
     const sessionId = get().sessionId;
 
     if (!sessionId) {
@@ -247,14 +255,23 @@ export const useAssistantStore = create<AssistantStore>((set, get) => ({
       return;
     }
 
-    set({
+    const optimisticMessage: AssistantMessage = {
+      id: `local-${Date.now()}`,
+      role: "user",
+      content,
+      createdAt: new Date().toISOString(),
+    };
+
+    set((state) => ({
       isLoading: true,
       error: null,
-    });
+      messages: [...state.messages, optimisticMessage],
+    }));
 
     try {
       const response = await assistantApi.sendMessage(sessionId, {
         message: content,
+        forceTramitar: options?.forceTramitar ?? false,
       });
 
       set({
@@ -311,6 +328,7 @@ export const useAssistantStore = create<AssistantStore>((set, get) => ({
       quoteRequest: null,
       topOption: null,
       validationSummary: null,
+      routePreview: null,
       orderDraft: initialDraft,
       isLoading: false,
       error: null,

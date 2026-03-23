@@ -54,6 +54,7 @@ export class ConversationService {
       quoteRequest: null,
       topOption: null,
       validationSummary: null,
+      routePreview: null,
     };
   }
 
@@ -98,6 +99,7 @@ export class ConversationService {
           role: item.role,
           content: item.content,
         })),
+        forceTramitar: dto.forceTramitar ?? false,
       });
 
     await this.conversationRepository.createMessage({
@@ -129,6 +131,7 @@ export class ConversationService {
       quoteRequest: orchestration.context.quoteRequest,
       topOption: orchestration.context.topOption,
       validationSummary: orchestration.validationSummary,
+      routePreview: orchestration.routePreview ?? null,
     };
   }
 
@@ -165,6 +168,7 @@ export class ConversationService {
       quoteRequest: null,
       topOption: null,
       validationSummary: null,
+      routePreview: null,
     };
   }
 

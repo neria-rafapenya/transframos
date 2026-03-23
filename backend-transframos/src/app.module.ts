@@ -13,6 +13,7 @@ import { RulesModule } from './modules/rules/rules.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { HandoffModule } from './modules/handoff/handoff.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
     PricingModule,
     OrdersModule,
     CatalogModule,
+    HandoffModule,
   ],
 })
 export class AppModule {}

@@ -3,6 +3,7 @@ import type {
   SendMessagePayload,
   StartConversationPayload,
 } from "./assistant.types";
+import { useAuthStore } from "@/modules/auth/auth.store";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
@@ -31,6 +32,13 @@ const parseErrorMessage = async (response: Response) => {
   }
 };
 
+const handleUnauthorized = () => {
+  useAuthStore.getState().clearSession();
+  if (typeof window !== "undefined") {
+    window.location.assign("/login");
+  }
+};
+
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(buildUrl(path), {
     credentials: "include",
@@ -39,6 +47,9 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      handleUnauthorized();
+    }
     const message = await parseErrorMessage(response);
     throw new Error(message);
   }

@@ -1,20 +1,35 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CatalogRepository } from '../../catalog/repositories/catalog.repository';
+import { RouteSuggestionService } from '../../catalog/services/route-suggestion.service';
 import { QuoteRequestEntity } from '../../quote/entities/quote-request.entity';
 
 @Injectable()
 export class PricingEngineService {
   private readonly fallbackSpeedKmh: number;
+  private readonly llmRouteMinConfidence: number;
 
   constructor(
     private readonly catalogRepository: CatalogRepository,
+    private readonly routeSuggestionService: RouteSuggestionService,
     private readonly configService: ConfigService,
   ) {
     const configured = this.toNumber(
       this.configService.get<string>('PRICING_FALLBACK_SPEED_KMH'),
     );
     this.fallbackSpeedKmh = configured && configured > 0 ? configured : 70;
+
+    const configuredMinConfidence = this.toNumber(
+      this.configService.get<string>('LLM_ROUTE_MIN_CONFIDENCE'),
+    );
+    if (
+      typeof configuredMinConfidence === 'number' &&
+      configuredMinConfidence >= 0
+    ) {
+      this.llmRouteMinConfidence = Math.min(1, configuredMinConfidence);
+    } else {
+      this.llmRouteMinConfidence = 0.55;
+    }
   }
 
   private parseAllowedVehicleTypes(value: string | null | undefined) {
@@ -134,13 +149,66 @@ export class PricingEngineService {
           )
         : null;
 
-    const route =
+    let route =
       originPoint && destinationPoint
         ? await this.catalogRepository.findRouteByPoints(
             originPoint.id,
             destinationPoint.id,
           )
         : null;
+
+    let llmRouteSuggestion: {
+      routeCode: string | null;
+      confidence: number | null;
+      rationale: string | null;
+      alternativeRouteCodes: string[];
+    } | null = null;
+    let usedLlmRoute = false;
+    let llmSuggestedRouteId: string | null = null;
+    let llmRouteAccepted: boolean | null = null;
+
+    if (!route && quoteRequest.originText && quoteRequest.destinationText) {
+      const suggestion = await this.routeSuggestionService.suggestRoute({
+        originText: quoteRequest.originText,
+        destinationText: quoteRequest.destinationText,
+        userId: null,
+      });
+
+      llmRouteSuggestion = suggestion.suggestion;
+      llmSuggestedRouteId = suggestion.route?.id ?? null;
+
+      if (llmRouteSuggestion) {
+        const confidence = llmRouteSuggestion.confidence;
+        const meetsThreshold =
+          typeof confidence === 'number'
+            ? confidence >= this.llmRouteMinConfidence
+            : false;
+
+        if (suggestion.route && meetsThreshold) {
+          route = suggestion.route;
+          usedLlmRoute = true;
+          llmRouteAccepted = true;
+        } else {
+          llmRouteAccepted = false;
+        }
+      }
+    }
+
+    let routeAssignedVehicleIds = new Set<string>();
+    let routeAssignmentsCount = 0;
+
+    if (route) {
+      const routeLinks = await this.catalogRepository.findVehicleRouteLinks({
+        routeId: route.id,
+        date: requestedDate,
+      });
+      routeAssignmentsCount = routeLinks.length;
+      if (routeLinks.length > 0) {
+        routeAssignedVehicleIds = new Set(
+          routeLinks.map((link) => link.vehicleId),
+        );
+      }
+    }
 
     let estimatedKm = route ? Number(route.standardDistanceKm) : null;
     let estimatedTransitHours = route
@@ -202,6 +270,9 @@ export class PricingEngineService {
         });
       }
     }
+    if (requestedDate && availability.length === 0) {
+      vehicles = [];
+    }
 
     const originAllowed = this.parseAllowedVehicleTypes(
       originPoint?.allowedVehicleTypes ?? null,
@@ -222,6 +293,7 @@ export class PricingEngineService {
     }
 
     let selectedTankId: string | null = null;
+    let tanksByVehicle: Map<string, string[]> | null = null;
     if (compatibleTanks.length > 0) {
       const vehicleTankLinks = await this.catalogRepository.findVehicleTankLinks({
         tankIds: compatibleTanks.map((tank) => tank.id),
@@ -229,25 +301,45 @@ export class PricingEngineService {
       });
 
       if (vehicleTankLinks.length > 0) {
-        const tanksByVehicle = new Map<string, string[]>();
+        const tanksByVehicleLocal = new Map<string, string[]>();
         for (const link of vehicleTankLinks) {
-          const list = tanksByVehicle.get(link.vehicleId) ?? [];
+          const list = tanksByVehicleLocal.get(link.vehicleId) ?? [];
           list.push(link.tankId);
-          tanksByVehicle.set(link.vehicleId, list);
+          tanksByVehicleLocal.set(link.vehicleId, list);
         }
 
-        vehicles = vehicles.filter((vehicle) => tanksByVehicle.has(vehicle.id));
-
-        const candidateVehicle = vehicles[0] ?? null;
-        if (candidateVehicle) {
-          selectedTankId = tanksByVehicle.get(candidateVehicle.id)?.[0] ?? null;
-        }
+        vehicles = vehicles.filter((vehicle) =>
+          tanksByVehicleLocal.has(vehicle.id),
+        );
+        tanksByVehicle = tanksByVehicleLocal;
       } else {
         vehicles = [];
       }
     }
 
+    let routePreferenceApplied = false;
+    let routeAssignedVehiclesInPool = 0;
+    if (routeAssignedVehicleIds.size > 0 && vehicles.length > 0) {
+      const preferred: typeof vehicles = [];
+      const remaining: typeof vehicles = [];
+      for (const vehicle of vehicles) {
+        if (routeAssignedVehicleIds.has(vehicle.id)) {
+          preferred.push(vehicle);
+        } else {
+          remaining.push(vehicle);
+        }
+      }
+      routeAssignedVehiclesInPool = preferred.length;
+      if (preferred.length > 0) {
+        vehicles = [...preferred, ...remaining];
+        routePreferenceApplied = true;
+      }
+    }
+
     const selectedVehicle = vehicles[0] ?? null;
+    if (selectedVehicle && tanksByVehicle) {
+      selectedTankId = tanksByVehicle.get(selectedVehicle.id)?.[0] ?? null;
+    }
     if (selectedVehicle && selectedTankId === null && compatibleTanks.length > 0) {
       const vehicleTankLinks = await this.catalogRepository.findVehicleTankLinks({
         vehicleIds: [selectedVehicle.id],
@@ -256,11 +348,21 @@ export class PricingEngineService {
       selectedTankId = vehicleTankLinks[0]?.tankId ?? null;
     }
 
+    const hasOriginPoint = Boolean(originPoint);
+    const hasDestinationPoint = Boolean(destinationPoint);
+    const hasRoute = Boolean(route || usedFallbackRoute);
+    const hasAvailability = requestedDate ? availability.length > 0 : true;
+
     const isFeasible =
       Boolean(product) &&
       compatibleTanks.length > 0 &&
       selectedVehicle !== null &&
-      selectedTankId !== null;
+      selectedTankId !== null &&
+      hasOriginPoint &&
+      hasDestinationPoint &&
+      hasRoute &&
+      estimatedTransitHours !== null &&
+      hasAvailability;
 
     const notes: string[] = [];
     if (!originPoint && quoteRequest.originText) {
@@ -279,8 +381,29 @@ export class PricingEngineService {
         'No se encontró ruta estándar ni coordenadas para estimar el tiempo.',
       );
     }
+    if (usedLlmRoute && route) {
+      const confidence = llmRouteSuggestion?.confidence;
+      notes.push(
+        `Ruta sugerida por IA: ${route.code}${
+          typeof confidence === 'number'
+            ? ` (confianza ${confidence.toFixed(2)})`
+            : ''
+        }.`,
+      );
+    } else if (llmRouteSuggestion?.routeCode) {
+      const confidence = llmRouteSuggestion?.confidence;
+      notes.push(
+        `Ruta sugerida por IA (${llmRouteSuggestion.routeCode}) no aplicada${
+          typeof confidence === 'number'
+            ? ` (confianza ${confidence.toFixed(2)} < mínimo ${this.llmRouteMinConfidence.toFixed(
+                2,
+              )})`
+            : ''
+        }.`,
+      );
+    }
     if (requestedDate && availability.length === 0) {
-      notes.push('No hay disponibilidad registrada; se asumen vehículos activos.');
+      notes.push('No hay disponibilidad registrada para la fecha solicitada.');
     }
     if (selectedVehicle === null) {
       notes.push('No hay vehículos disponibles para la fecha solicitada.');
@@ -306,10 +429,19 @@ export class PricingEngineService {
       estimatedTransitHours,
       isFeasible,
       recommendationScore: isFeasible ? 90 : 40,
+      routeSuggestion: {
+        suggestedRouteId: llmSuggestedRouteId,
+        suggestedRouteCode: llmRouteSuggestion?.routeCode ?? null,
+        suggestedRouteConfidence: llmRouteSuggestion?.confidence ?? null,
+        suggestedRouteRationale: llmRouteSuggestion?.rationale ?? null,
+        suggestedRouteAccepted: llmRouteAccepted,
+      },
       reasoningJson: {
         formula: 'base + liters * 0.12',
         productId: product?.id ?? null,
         categoryId: product?.categoryId ?? null,
+        productCategoryName: product?.category?.name ?? null,
+        productCategoryCode: product?.category?.code ?? null,
         compatibleTanks: compatibleTanks.length,
         availableVehicles: vehicles.length,
         routeId: route?.id ?? null,
@@ -319,6 +451,21 @@ export class PricingEngineService {
         selectedTankId,
         usedFallbackRoute,
         fallbackSpeedKmh: usedFallbackRoute ? this.fallbackSpeedKmh : null,
+        hasOriginPoint,
+        hasDestinationPoint,
+        hasRoute,
+        hasAvailability,
+        routeAssignmentsCount: routeAssignmentsCount || 0,
+        routeAssignedVehiclesInPool,
+        routePreferenceApplied,
+        llmSuggestedRouteCode: llmRouteSuggestion?.routeCode ?? null,
+        llmSuggestedRouteId,
+        llmSuggestedRouteConfidence: llmRouteSuggestion?.confidence ?? null,
+        llmSuggestedRouteRationale: llmRouteSuggestion?.rationale ?? null,
+        llmSuggestedRouteAccepted: llmRouteAccepted,
+        llmSuggestedRouteMinConfidence: this.llmRouteMinConfidence,
+        llmAlternativeRouteCodes:
+          llmRouteSuggestion?.alternativeRouteCodes ?? [],
       },
       notes:
         notes.length > 0

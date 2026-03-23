@@ -39,6 +39,19 @@ export type OrderDraft = {
   missingClientData: string[];
 };
 
+export type RoutePreviewPoint = {
+  lat: number;
+  lon: number;
+  label?: string | null;
+  isApproximate?: boolean;
+};
+
+export type RoutePreview = {
+  origin: RoutePreviewPoint | null;
+  destination: RoutePreviewPoint | null;
+  isApproximate: boolean;
+};
+
 export type AssistantReplyContext = {
   userMessage: string;
   currentDraft: OrderDraft;
@@ -154,6 +167,7 @@ export type ConversationResponse = {
   quoteRequest: BackendQuoteRequest | null;
   topOption: BackendQuoteOption | null;
   validationSummary: BackendValidationSummary | null;
+  routePreview?: RoutePreview | null;
 };
 
 export type StartConversationPayload = {
@@ -166,4 +180,5 @@ export type StartConversationPayload = {
 
 export type SendMessagePayload = {
   message: string;
+  forceTramitar?: boolean;
 };

@@ -4,6 +4,9 @@ import { QuoteService } from '../quote/quote.service';
 import { ValidateQuoteDto } from './dto/validate-quote.dto';
 import { RulesRepository } from './repositories/rules.repository';
 import { CompatibilityRulesService } from './services/compatibility-rules.service';
+import { CatalogRepository } from '../catalog/repositories/catalog.repository';
+import { LoadingPointEntity } from '../catalog/entities/loading-point.entity';
+import { UnloadingPointEntity } from '../catalog/entities/unloading-point.entity';
 
 @Injectable()
 export class RulesService {
@@ -11,6 +14,7 @@ export class RulesService {
     private readonly quoteService: QuoteService,
     private readonly rulesRepository: RulesRepository,
     private readonly compatibilityRulesService: CompatibilityRulesService,
+    private readonly catalogRepository: CatalogRepository,
   ) {}
 
   async validateQuoteRequest(quoteRequestId: string, dto: ValidateQuoteDto) {
@@ -90,6 +94,75 @@ export class RulesService {
           : 'Falta el límite de entrega.',
       },
     ];
+
+    let originPoint: LoadingPointEntity | null = null;
+    let destinationPoint: UnloadingPointEntity | null = null;
+
+    if (quoteRequest.originText) {
+      originPoint = await this.catalogRepository.findLoadingPointByText(
+        quoteRequest.originText,
+      );
+
+      results.push({
+        ruleCode: 'ORIGIN_POINT_REQUIRED',
+        severity: originPoint ? 'info' : 'warning',
+        validationStatus: originPoint ? 'passed' : 'warning',
+        message: originPoint
+          ? 'Origen normalizado correctamente.'
+          : 'Origen no normalizado en catálogo; se intentará sugerir ruta con IA.',
+      });
+    }
+
+    if (quoteRequest.destinationText) {
+      destinationPoint = await this.catalogRepository.findUnloadingPointByText(
+        quoteRequest.destinationText,
+      );
+
+      results.push({
+        ruleCode: 'DESTINATION_POINT_REQUIRED',
+        severity: destinationPoint ? 'info' : 'warning',
+        validationStatus: destinationPoint ? 'passed' : 'warning',
+        message: destinationPoint
+          ? 'Destino normalizado correctamente.'
+          : 'Destino no normalizado en catálogo; se intentará sugerir ruta con IA.',
+      });
+    }
+
+    if (quoteRequest.originText && quoteRequest.destinationText) {
+      const route =
+        originPoint && destinationPoint
+          ? await this.catalogRepository.findRouteByPoints(
+              originPoint.id,
+              destinationPoint.id,
+            )
+          : null;
+
+      results.push({
+        ruleCode: 'ROUTE_REQUIRED',
+        severity: route ? 'info' : 'warning',
+        validationStatus: route ? 'passed' : 'warning',
+        message: route
+          ? 'Ruta estándar encontrada.'
+          : 'No hay ruta estándar para el trayecto indicado; se intentará sugerir una ruta por IA.',
+      });
+    }
+
+    if (quoteRequest.requestedLoadDate) {
+      const availability =
+        await this.catalogRepository.findVehicleAvailabilityByDate(
+          quoteRequest.requestedLoadDate,
+        );
+
+      results.push({
+        ruleCode: 'AVAILABILITY_REQUIRED',
+        severity: 'error',
+        validationStatus: availability.length > 0 ? 'passed' : 'failed',
+        message:
+          availability.length > 0
+            ? 'Disponibilidad registrada para la fecha solicitada.'
+            : 'No hay disponibilidad registrada de vehículos para esa fecha.',
+      });
+    }
 
     const compatibilityResults =
       await this.compatibilityRulesService.evaluate(quoteRequest);

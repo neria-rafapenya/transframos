@@ -165,4 +165,43 @@ export class QuoteRequestEntity {
     default: 'idle',
   })
   wizardStatus: string;
+
+  @Column({
+    name: 'suggested_route_id',
+    type: 'char',
+    length: 36,
+    nullable: true,
+  })
+  suggestedRouteId: string | null;
+
+  @Column({
+    name: 'suggested_route_code',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  suggestedRouteCode: string | null;
+
+  @Column({
+    name: 'suggested_route_confidence',
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
+  suggestedRouteConfidence: number | null;
+
+  @Column({
+    name: 'suggested_route_rationale',
+    type: 'text',
+    nullable: true,
+  })
+  suggestedRouteRationale: string | null;
+
+  @Column({
+    name: 'suggested_route_accepted',
+    type: 'boolean',
+    nullable: true,
+  })
+  suggestedRouteAccepted: boolean | null;
 }

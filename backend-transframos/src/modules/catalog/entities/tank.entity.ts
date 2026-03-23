@@ -46,6 +46,9 @@ export class TankEntity {
   @Column({ name: 'cleaning_status', type: 'varchar', length: 20 })
   cleaningStatus: string;
 
+  @Column({ name: 'last_product_id', type: 'char', length: 36, nullable: true })
+  lastProductId: string | null;
+
   @Column({ name: 'current_location', type: 'varchar', length: 120, nullable: true })
   currentLocation: string | null;
 

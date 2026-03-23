@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { ProductEntity } from '../entities/product.entity';
@@ -9,9 +10,11 @@ import { VehicleAvailabilityEntity } from '../entities/vehicle-availability.enti
 import { LoadingPointEntity } from '../entities/loading-point.entity';
 import { UnloadingPointEntity } from '../entities/unloading-point.entity';
 import { RouteEntity } from '../entities/route.entity';
+import { RouteWaypointEntity } from '../entities/route-waypoint.entity';
 import { TankEntity } from '../entities/tank.entity';
 import { TankProductAuthorizationEntity } from '../entities/tank-product-authorization.entity';
 import { VehicleTankEntity } from '../entities/vehicle-tank.entity';
+import { VehicleRouteEntity } from '../entities/vehicle-route.entity';
 import { QueryProductsDto } from '../dto/query-products.dto';
 import { QueryLocationsDto } from '../dto/query-locations.dto';
 
@@ -34,12 +37,16 @@ export class CatalogRepository {
     private readonly unloadingPointRepository: Repository<UnloadingPointEntity>,
     @InjectRepository(RouteEntity)
     private readonly routeRepository: Repository<RouteEntity>,
+    @InjectRepository(RouteWaypointEntity)
+    private readonly routeWaypointRepository: Repository<RouteWaypointEntity>,
     @InjectRepository(TankEntity)
     private readonly tankRepository: Repository<TankEntity>,
     @InjectRepository(TankProductAuthorizationEntity)
     private readonly tankAuthorizationRepository: Repository<TankProductAuthorizationEntity>,
     @InjectRepository(VehicleTankEntity)
     private readonly vehicleTankRepository: Repository<VehicleTankEntity>,
+    @InjectRepository(VehicleRouteEntity)
+    private readonly vehicleRouteRepository: Repository<VehicleRouteEntity>,
   ) {}
 
   async findProducts(query: QueryProductsDto) {
@@ -94,6 +101,18 @@ export class CatalogRepository {
       .getOne();
   }
 
+  async findProductsByIds(ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return this.productRepository.find({
+      where: {
+        id: In(ids),
+      },
+    });
+  }
+
   async findProductCategories() {
     return this.productCategoryRepository.find({
       order: {
@@ -119,11 +138,43 @@ export class CatalogRepository {
     });
   }
 
+  async findAllVehicles() {
+    return this.vehicleRepository.find({
+      order: {
+        code: 'ASC',
+      },
+    });
+  }
+
+  async findAllVehicleAvailability() {
+    return this.vehicleAvailabilityRepository.find({
+      order: {
+        availabilityDate: 'ASC',
+      },
+    });
+  }
+
   async findVehicleAvailabilityByDate(date: string) {
     return this.vehicleAvailabilityRepository.find({
       where: {
         availabilityDate: date,
         available: true,
+      },
+    });
+  }
+
+  async findVehicleAvailabilityByVehicleIds(vehicleIds: string[]) {
+    if (vehicleIds.length === 0) {
+      return [];
+    }
+
+    return this.vehicleAvailabilityRepository.find({
+      where: {
+        vehicleId: In(vehicleIds),
+        available: true,
+      },
+      order: {
+        availabilityDate: 'ASC',
       },
     });
   }
@@ -236,6 +287,72 @@ export class CatalogRepository {
       .getOne();
   }
 
+  async createLoadingPoint(params: {
+    code: string;
+    name: string;
+    countryCode: string;
+    city: string;
+    addressLine1: string;
+    postalCode?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    clientId?: string | null;
+    notes?: string | null;
+  }) {
+    const entity = this.loadingPointRepository.create({
+      id: randomUUID(),
+      code: params.code,
+      name: params.name,
+      countryCode: params.countryCode,
+      city: params.city,
+      addressLine1: params.addressLine1,
+      postalCode: params.postalCode ?? null,
+      latitude:
+        typeof params.latitude === 'number' ? params.latitude : null,
+      longitude:
+        typeof params.longitude === 'number' ? params.longitude : null,
+      clientId: params.clientId ?? null,
+      notes: params.notes ?? null,
+      isActive: true,
+      requiresPrealert: false,
+    });
+
+    return this.loadingPointRepository.save(entity);
+  }
+
+  async createUnloadingPoint(params: {
+    code: string;
+    name: string;
+    countryCode: string;
+    city: string;
+    addressLine1: string;
+    postalCode?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    clientId?: string | null;
+    notes?: string | null;
+  }) {
+    const entity = this.unloadingPointRepository.create({
+      id: randomUUID(),
+      code: params.code,
+      name: params.name,
+      countryCode: params.countryCode,
+      city: params.city,
+      addressLine1: params.addressLine1,
+      postalCode: params.postalCode ?? null,
+      latitude:
+        typeof params.latitude === 'number' ? params.latitude : null,
+      longitude:
+        typeof params.longitude === 'number' ? params.longitude : null,
+      clientId: params.clientId ?? null,
+      notes: params.notes ?? null,
+      isActive: true,
+      requiresPrealert: false,
+    });
+
+    return this.unloadingPointRepository.save(entity);
+  }
+
   async findLocations(query: QueryLocationsDto) {
     if (query.pointType === 'loading') {
       return this.findLoadingPoints(query);
@@ -276,6 +393,53 @@ export class CatalogRepository {
         originLoadingPointId,
         destinationUnloadingPointId,
         isActive: true,
+      },
+    });
+  }
+
+  async findRouteById(id: string) {
+    return this.routeRepository.findOne({
+      where: { id },
+    });
+  }
+
+  async findAllRoutes() {
+    return this.routeRepository.find({
+      order: {
+        code: 'ASC',
+      },
+    });
+  }
+
+  async findAllRouteWaypoints() {
+    return this.routeWaypointRepository.find({
+      order: {
+        routeId: 'ASC',
+        sequenceNo: 'ASC',
+      },
+    });
+  }
+
+  async findAllTanks() {
+    return this.tankRepository.find({
+      order: {
+        code: 'ASC',
+      },
+    });
+  }
+
+  async findAllTankAuthorizations() {
+    return this.tankAuthorizationRepository.find({
+      order: {
+        id: 'ASC',
+      },
+    });
+  }
+
+  async findAllVehicleTanks() {
+    return this.vehicleTankRepository.find({
+      order: {
+        vehicleId: 'ASC',
       },
     });
   }
@@ -365,5 +529,45 @@ export class CatalogRepository {
     }
 
     return qb.getMany();
+  }
+
+  async findVehicleRouteLinks(params: {
+    routeId?: string;
+    vehicleIds?: string[];
+    date?: string | null;
+    onlyActive?: boolean;
+  }) {
+    const qb = this.vehicleRouteRepository.createQueryBuilder('link');
+
+    if (params.routeId) {
+      qb.andWhere('link.routeId = :routeId', { routeId: params.routeId });
+    }
+
+    if (params.vehicleIds && params.vehicleIds.length > 0) {
+      qb.andWhere('link.vehicleId IN (:...vehicleIds)', {
+        vehicleIds: params.vehicleIds,
+      });
+    }
+
+    if (params.onlyActive !== false) {
+      qb.andWhere('link.isActive = :isActive', { isActive: true });
+    }
+
+    if (params.date) {
+      qb.andWhere(
+        '(link.validFrom IS NULL OR link.validFrom <= :date) AND (link.validTo IS NULL OR link.validTo >= :date)',
+        { date: params.date },
+      );
+    }
+
+    return qb.getMany();
+  }
+
+  async findAllVehicleRoutes() {
+    return this.vehicleRouteRepository.find({
+      order: {
+        routeId: 'ASC',
+      },
+    });
   }
 }

@@ -65,4 +65,52 @@ export class CatalogService {
   async getCompatibilityRules() {
     return this.catalogRepository.findProductCompatibilityRules();
   }
+
+  async getSandboxSnapshot() {
+    const [
+      products,
+      productCategories,
+      vehicles,
+      vehicleAvailability,
+      tanks,
+      tankAuthorizations,
+      vehicleTanks,
+      routes,
+      vehicleRoutes,
+      routeWaypoints,
+      loadingPoints,
+      unloadingPoints,
+      compatibilityRules,
+    ] = await Promise.all([
+      this.catalogRepository.findProducts({}),
+      this.catalogRepository.findProductCategories(),
+      this.catalogRepository.findAllVehicles(),
+      this.catalogRepository.findAllVehicleAvailability(),
+      this.catalogRepository.findAllTanks(),
+      this.catalogRepository.findAllTankAuthorizations(),
+      this.catalogRepository.findAllVehicleTanks(),
+      this.catalogRepository.findAllRoutes(),
+      this.catalogRepository.findAllVehicleRoutes(),
+      this.catalogRepository.findAllRouteWaypoints(),
+      this.catalogRepository.findLoadingPoints({}),
+      this.catalogRepository.findUnloadingPoints({}),
+      this.catalogRepository.findProductCompatibilityRules(),
+    ]);
+
+    return {
+      products,
+      productCategories,
+      vehicles,
+      vehicleAvailability,
+      tanks,
+      tankAuthorizations,
+      vehicleTanks,
+      routes,
+      vehicleRoutes,
+      routeWaypoints,
+      loadingPoints,
+      unloadingPoints,
+      compatibilityRules,
+    };
+  }
 }

@@ -17,6 +17,8 @@ import { QuoteOptionEntity } from '../modules/quote/entities/quote-option.entity
 import { ValidationResultEntity } from '../modules/quote/entities/validation-result.entity';
 
 import { DraftOrderEntity } from '../modules/orders/entities/draft-order.entity';
+import { OrderEntity } from '../modules/orders/entities/order.entity';
+import { ClientEntity } from '../modules/clients/entities/client.entity';
 import { VehicleEntity } from '../modules/catalog/entities/vehicle.entity';
 import { VehicleAvailabilityEntity } from '../modules/catalog/entities/vehicle-availability.entity';
 import { ProductEntity } from '../modules/catalog/entities/product.entity';
@@ -25,9 +27,11 @@ import { ProductCompatibilityRuleEntity } from '../modules/catalog/entities/prod
 import { LoadingPointEntity } from '../modules/catalog/entities/loading-point.entity';
 import { UnloadingPointEntity } from '../modules/catalog/entities/unloading-point.entity';
 import { RouteEntity } from '../modules/catalog/entities/route.entity';
+import { RouteWaypointEntity } from '../modules/catalog/entities/route-waypoint.entity';
 import { TankEntity } from '../modules/catalog/entities/tank.entity';
 import { TankProductAuthorizationEntity } from '../modules/catalog/entities/tank-product-authorization.entity';
 import { VehicleTankEntity } from '../modules/catalog/entities/vehicle-tank.entity';
+import { VehicleRouteEntity } from '../modules/catalog/entities/vehicle-route.entity';
 
 @Module({
   imports: [
@@ -58,6 +62,8 @@ import { VehicleTankEntity } from '../modules/catalog/entities/vehicle-tank.enti
             QuoteOptionEntity,
             ValidationResultEntity,
             DraftOrderEntity,
+            OrderEntity,
+            ClientEntity,
             VehicleEntity,
             VehicleAvailabilityEntity,
             ProductEntity,
@@ -66,9 +72,11 @@ import { VehicleTankEntity } from '../modules/catalog/entities/vehicle-tank.enti
             LoadingPointEntity,
             UnloadingPointEntity,
             RouteEntity,
+            RouteWaypointEntity,
             TankEntity,
             TankProductAuthorizationEntity,
             VehicleTankEntity,
+            VehicleRouteEntity,
           ],
           synchronize,
           logging: false,
