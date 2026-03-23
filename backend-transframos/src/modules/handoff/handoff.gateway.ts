@@ -25,7 +25,7 @@ type HandoffMessagePayload = {
   senderEmail?: string;
 };
 
-@WebSocketGateway(Number(process.env.HANDOFF_SOCKET_PORT ?? 5000), {
+@WebSocketGateway({
   namespace: '/handoff',
   cors: {
     origin: true,

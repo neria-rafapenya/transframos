@@ -1,4 +1,5 @@
 import express from "express";
+import http from "node:http";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,26 +24,30 @@ const proxyConfig = {
 
 const rewriteToOriginalUrl = (path, req) => req.originalUrl || path;
 
+const apiProxy = createProxyMiddleware({
+  ...proxyConfig,
+  pathRewrite: rewriteToOriginalUrl,
+});
+const handoffProxy = createProxyMiddleware({
+  ...proxyConfig,
+  pathRewrite: rewriteToOriginalUrl,
+});
+const socketProxy = createProxyMiddleware({
+  ...proxyConfig,
+  pathRewrite: rewriteToOriginalUrl,
+});
+
 app.use(
   "/api",
-  createProxyMiddleware({
-    ...proxyConfig,
-    pathRewrite: rewriteToOriginalUrl,
-  }),
+  apiProxy,
 );
 app.use(
   "/handoff",
-  createProxyMiddleware({
-    ...proxyConfig,
-    pathRewrite: rewriteToOriginalUrl,
-  }),
+  handoffProxy,
 );
 app.use(
   "/socket.io",
-  createProxyMiddleware({
-    ...proxyConfig,
-    pathRewrite: rewriteToOriginalUrl,
-  }),
+  socketProxy,
 );
 
 const distDir = path.join(__dirname, "dist");
@@ -52,7 +57,11 @@ app.get(/.*/, (_req, res) => {
   res.sendFile(path.join(distDir, "index.html"));
 });
 
-app.listen(port, "0.0.0.0", () => {
+const server = http.createServer(app);
+
+server.on("upgrade", socketProxy.upgrade);
+
+server.listen(port, "0.0.0.0", () => {
   console.log(`[frontend] Serving dist on ${port}`);
   console.log(`[frontend] Proxying API to ${target}`);
 });
