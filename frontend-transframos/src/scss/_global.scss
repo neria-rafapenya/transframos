@@ -163,6 +163,47 @@ a {
   background: #f1f1f1;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.widget-frame__header {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.widget-frame__close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  background: #ffffff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.widget-frame__close:hover {
+  transform: translateY(-1px);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.3);
+}
+
+.widget-frame__close svg {
+  width: 16px;
+  height: 16px;
 }
 
 .widget-loading-screen {
@@ -581,7 +622,6 @@ a {
 }
 
 .login-card {
-  position: relative;
   width: 100%;
   max-width: 420px;
   background: white;
@@ -641,38 +681,6 @@ a {
   margin: 0 0 24px;
   color: #6b7280;
   font-size: 14px;
-}
-
-.login-card__close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid #e5e7eb;
-  background: #f8fafc;
-  color: #6b7280;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.login-card__close:hover {
-  background: #eef2f7;
-  color: #111827;
-  border-color: #d1d5db;
-}
-
-.login-card__close svg {
-  width: 16px;
-  height: 16px;
 }
 
 .login-form {
