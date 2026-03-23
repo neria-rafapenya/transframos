@@ -6,6 +6,14 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { LlmModule } from './modules/llm/llm.module';
+import { ConversationModule } from './modules/conversation/conversation.module';
+import { WizardModule } from './modules/wizard/wizard.module';
+import { QuoteModule } from './modules/quote/quote.module';
+import { RulesModule } from './modules/rules/rules.module';
+import { PricingModule } from './modules/pricing/pricing.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { HandoffModule } from './modules/handoff/handoff.module';
 
 @Module({
   imports: [
@@ -19,6 +27,14 @@ import { LlmModule } from './modules/llm/llm.module';
     AuthModule,
     SessionsModule,
     LlmModule,
+    ConversationModule,
+    WizardModule,
+    QuoteModule,
+    RulesModule,
+    PricingModule,
+    OrdersModule,
+    CatalogModule,
+    HandoffModule,
   ],
 })
 export class AppModule {}

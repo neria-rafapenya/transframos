@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/modules/auth/auth.store";
+import Logotipo from "@/components/ui/Logotipo";
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
 
-  const [email, setEmail] = useState("cliente@zumosrios.com");
+  const [email, setEmail] = useState("admin@transframos.local");
   const [password, setPassword] = useState("123456");
   const [error, setError] = useState("");
 
@@ -28,9 +29,10 @@ const LoginPage = () => {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-card__header">
-          <h1>Portal Transframos Demo</h1>
-          <p>Acceso para clientes fidelizados</p>
+        <div className="login-card__header text-center">
+          <Logotipo width={188} height={48} color="#00A58F" />
+
+          <p>Asistente Inteligente de pedidos</p>
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
@@ -40,7 +42,7 @@ const LoginPage = () => {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="cliente@empresa.com"
+              placeholder="usuario@empresa.com"
             />
           </label>
 
@@ -65,12 +67,9 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <div className="login-help">
-          <small>
-            Demo mock. Usa por defecto:
-            <br />
-            <strong>cliente@zumosrios.com</strong> / <strong>123456</strong>
-          </small>
+        <div className="login-card__footer text-center">
+          <span>¿Eres nuevo cliente? </span>
+          <Link to="/register">Crea tu cuenta</Link>
         </div>
       </div>
     </div>
