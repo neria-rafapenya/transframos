@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import LoginPage from "@/pages/login/LoginPage";
 import RegisterPage from "@/pages/register/RegisterPage";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
@@ -23,11 +23,25 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   return children;
 };
 
+const ProfileGate = ({ children }: { children: React.ReactNode }) => {
+  const user = useAuthStore((state) => state.user);
+  const location = useLocation();
+  const needsProfile = !user?.fullName?.trim();
+
+  if (user && needsProfile && location.pathname !== "/profile") {
+    return <Navigate to="/profile" replace />;
+  }
+
+  return children;
+};
+
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const needsProfile = !user?.fullName?.trim();
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={needsProfile ? "/profile" : "/dashboard"} replace />;
   }
 
   return children;
@@ -86,7 +100,9 @@ const AppRouter = () => {
         path="/"
         element={
           <PrivateRoute>
-            <AppLayout />
+            <ProfileGate>
+              <AppLayout />
+            </ProfileGate>
           </PrivateRoute>
         }
       >

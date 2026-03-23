@@ -185,7 +185,7 @@ export class AuthService {
     const user = await this.usersService.registerClient({
       email: dto.email,
       password: dto.password,
-      fullName: dto.fullName,
+      fullName: dto.fullName ?? '',
     });
 
     const session = await this.sessionsService.createSession({

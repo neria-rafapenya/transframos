@@ -109,12 +109,12 @@ export class UsersService {
   async registerClient(params: {
     email: string;
     password: string;
-    fullName: string;
+    fullName?: string;
   }): Promise<User> {
     return this.createUser({
       email: params.email,
       password: params.password,
-      fullName: params.fullName,
+      fullName: params.fullName?.trim() ?? '',
       role: UserRole.CLIENT,
       clientType: ClientType.NUEVO,
       isActive: true,
