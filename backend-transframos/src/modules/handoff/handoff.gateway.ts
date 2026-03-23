@@ -31,7 +31,6 @@ type HandoffMessagePayload = {
     origin: true,
     credentials: true,
   },
-  transports: ['websocket'],
 })
 export class HandoffGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
