@@ -60,7 +60,7 @@ const OrderDetailPage = () => {
   }, [id]);
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page order-detail-page">
       <section className="panel">
         <div className="panel-header">
           <div>

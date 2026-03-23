@@ -8,6 +8,9 @@ import RoutePreviewMap from "./RoutePreviewMap";
 import SpinnerDots from "@/components/shared/SpinnerDots";
 import Tippy from "@tippyjs/react";
 import MarkdownText from "@/components/shared/MarkdownText";
+import CopyIcon from "@/components/icons/CopyIcon";
+import AudioPlayIcon from "@/components/icons/AudioPlayIcon";
+import AudioMutedIcon from "@/components/icons/AudioMutedIcon";
 import {
   ASSISTANT_CORRECTION_PLACEHOLDERS,
   ASSISTANT_PLACEHOLDERS,
@@ -86,6 +89,10 @@ const AssistantPage = () => {
   const humanSocketRef = useRef<Socket | null>(null);
   const humanCloseTimerRef = useRef<number | null>(null);
   const [copyFeedbackId, setCopyFeedbackId] = useState<string | null>(null);
+  const [copyToastVisible, setCopyToastVisible] = useState(false);
+  const copyToastTimerRef = useRef<number | null>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     if (!sessionId && user) {
@@ -120,6 +127,15 @@ const AssistantPage = () => {
     element.style.height = `${nextHeight}px`;
     element.style.overflowY = element.scrollHeight > 200 ? "auto" : "hidden";
   }, [input]);
+
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+      if (copyToastTimerRef.current) {
+        window.clearTimeout(copyToastTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const element = chatScrollRef.current;
@@ -695,9 +711,68 @@ const AssistantPage = () => {
       window.setTimeout(() => {
         setCopyFeedbackId((prev) => (prev === id ? null : prev));
       }, 1400);
+      setCopyToastVisible(true);
+      if (copyToastTimerRef.current) {
+        window.clearTimeout(copyToastTimerRef.current);
+      }
+      copyToastTimerRef.current = window.setTimeout(() => {
+        setCopyToastVisible(false);
+        copyToastTimerRef.current = null;
+      }, 1600);
     } catch {
       // noop
     }
+  };
+
+  const stripMarkdownForSpeech = (text: string) => {
+    return text
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[*_~>#]+/g, "")
+      .replace(/^\s*[-*+]\s+/gm, "")
+      .replace(/^\s*\d+\.\s+/gm, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const stopSpeech = () => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    speechRef.current = null;
+    setSpeakingId(null);
+  };
+
+  const speakMessage = (text: string, id: string) => {
+    if (speakingId === id) {
+      stopSpeech();
+      return;
+    }
+
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+
+    stopSpeech();
+
+    const utterance = new SpeechSynthesisUtterance(
+      stripMarkdownForSpeech(text),
+    );
+    utterance.lang = "es-ES";
+    utterance.onend = () => {
+      setSpeakingId((current) => (current === id ? null : current));
+    };
+    utterance.onerror = () => {
+      setSpeakingId((current) => (current === id ? null : current));
+    };
+
+    speechRef.current = utterance;
+    setSpeakingId(id);
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -721,21 +796,56 @@ const AssistantPage = () => {
         <div className="chat-window">
           <div className="chat-window__scroll" ref={chatScrollRef}>
             {messages.length === 0 && !isLoading ? (
-              <div className="bubble assistant">
-                <div className="bubble-role">Asistente IA</div>
-                <MarkdownText content="Bienvenido. ¿En que puedo ayudarte con tu solicitud de transporte?" />
-                <div className="bubble-actions">
-                  <button
-                    className="bubble-copy"
-                    onClick={() =>
-                      copyToClipboard(
-                        "Bienvenido. ¿En que puedo ayudarte con tu solicitud de transporte?",
-                        "welcome",
-                      )
+              <div className="bubble-group bubble-group--assistant">
+                <div className="bubble assistant">
+                  <div className="bubble-role">Asistente IA</div>
+                  <MarkdownText content="Bienvenido. ¿En que puedo ayudarte con tu solicitud de transporte?" />
+                </div>
+                <div className="bubble-tools">
+                  <Tippy
+                    content={
+                      speakingId === "welcome-audio"
+                        ? "Detener audio"
+                        : "Escuchar mensaje"
                     }
                   >
-                    {copyFeedbackId === "welcome" ? "Copiado" : "Copiar"}
-                  </button>
+                    <span>
+                      <button
+                        className="bubble-audio"
+                        onClick={() =>
+                          speakMessage(
+                            "Bienvenido. ¿En que puedo ayudarte con tu solicitud de transporte?",
+                            "welcome-audio",
+                          )
+                        }
+                        aria-label="Escuchar mensaje"
+                      >
+                        {speakingId === "welcome-audio" ? (
+                          <AudioMutedIcon />
+                        ) : (
+                          <AudioPlayIcon />
+                        )}
+                      </button>
+                    </span>
+                  </Tippy>
+                  <Tippy
+                    content={copyFeedbackId === "welcome" ? "Copiado" : "Copiar"}
+                  >
+                    <span>
+                      <button
+                        className="bubble-copy"
+                        onClick={() =>
+                          copyToClipboard(
+                            "Bienvenido. ¿En que puedo ayudarte con tu solicitud de transporte?",
+                            "welcome",
+                          )
+                        }
+                        aria-label="Copiar mensaje"
+                      >
+                        <CopyIcon />
+                      </button>
+                    </span>
+                  </Tippy>
                 </div>
               </div>
             ) : null}
@@ -743,29 +853,67 @@ const AssistantPage = () => {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={
-                  message.role === "assistant"
-                    ? "bubble assistant"
-                    : "bubble user"
-                }
+                className={`bubble-group bubble-group--${
+                  message.role === "assistant" ? "assistant" : "user"
+                }`}
               >
-                <div className="bubble-role">
-                  {message.role === "assistant"
-                    ? "Asistente IA"
-                    : user?.fullName}
+                <div
+                  className={
+                    message.role === "assistant"
+                      ? "bubble assistant"
+                      : "bubble user"
+                  }
+                >
+                  <div className="bubble-role">
+                    {message.role === "assistant"
+                      ? "Asistente IA"
+                      : user?.fullName}
+                  </div>
+                  <MarkdownText content={message.content} />
                 </div>
-                <MarkdownText content={message.content} />
-                <div className="bubble-actions">
-                  <button
-                    className="bubble-copy"
-                    onClick={() =>
-                      copyToClipboard(message.content, `msg-${message.id}`)
+                <div className="bubble-tools">
+                  <Tippy
+                    content={
+                      speakingId === `audio-${message.id}`
+                        ? "Detener audio"
+                        : "Escuchar mensaje"
                     }
                   >
-                    {copyFeedbackId === `msg-${message.id}`
-                      ? "Copiado"
-                      : "Copiar"}
-                  </button>
+                    <span>
+                      <button
+                        className="bubble-audio"
+                        onClick={() =>
+                          speakMessage(message.content, `audio-${message.id}`)
+                        }
+                        aria-label="Escuchar mensaje"
+                      >
+                        {speakingId === `audio-${message.id}` ? (
+                          <AudioMutedIcon />
+                        ) : (
+                          <AudioPlayIcon />
+                        )}
+                      </button>
+                    </span>
+                  </Tippy>
+                  <Tippy
+                    content={
+                      copyFeedbackId === `msg-${message.id}`
+                        ? "Copiado"
+                        : "Copiar"
+                    }
+                  >
+                    <span>
+                      <button
+                        className="bubble-copy"
+                        onClick={() =>
+                          copyToClipboard(message.content, `msg-${message.id}`)
+                        }
+                        aria-label="Copiar mensaje"
+                      >
+                        <CopyIcon />
+                      </button>
+                    </span>
+                  </Tippy>
                 </div>
               </div>
             ))}
@@ -1227,23 +1375,62 @@ const AssistantPage = () => {
               {humanChatMessages.map((message) => (
                 <div
                   key={message.id}
-                  className={`human-chat__bubble human-chat__bubble--${message.role}`}
+                  className={`human-chat__message human-chat__message--${message.role}`}
                 >
-                  <MarkdownText content={message.content} />
-                  <div className="bubble-actions">
-                    <button
-                      className="bubble-copy"
-                      onClick={() =>
-                        copyToClipboard(
-                          message.content,
-                          `human-${message.id}`,
-                        )
+                  <div
+                    className={`human-chat__bubble human-chat__bubble--${message.role}`}
+                  >
+                    <MarkdownText content={message.content} />
+                  </div>
+                  <div className="bubble-tools">
+                    <Tippy
+                      content={
+                        speakingId === `human-audio-${message.id}`
+                          ? "Detener audio"
+                          : "Escuchar mensaje"
                       }
                     >
-                      {copyFeedbackId === `human-${message.id}`
-                        ? "Copiado"
-                        : "Copiar"}
-                    </button>
+                      <span>
+                        <button
+                          className="bubble-audio"
+                          onClick={() =>
+                            speakMessage(
+                              message.content,
+                              `human-audio-${message.id}`,
+                            )
+                          }
+                          aria-label="Escuchar mensaje"
+                        >
+                          {speakingId === `human-audio-${message.id}` ? (
+                            <AudioMutedIcon />
+                          ) : (
+                            <AudioPlayIcon />
+                          )}
+                        </button>
+                      </span>
+                    </Tippy>
+                    <Tippy
+                      content={
+                        copyFeedbackId === `human-${message.id}`
+                          ? "Copiado"
+                          : "Copiar"
+                      }
+                    >
+                      <span>
+                        <button
+                          className="bubble-copy"
+                          onClick={() =>
+                            copyToClipboard(
+                              message.content,
+                              `human-${message.id}`,
+                            )
+                          }
+                          aria-label="Copiar mensaje"
+                        >
+                          <CopyIcon />
+                        </button>
+                      </span>
+                    </Tippy>
                   </div>
                 </div>
               ))}
@@ -1274,6 +1461,12 @@ const AssistantPage = () => {
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {copyToastVisible ? (
+        <div className="toast toast--success" role="status" aria-live="polite">
+          Ok, se ha copiado el contenido.
         </div>
       ) : null}
     </div>

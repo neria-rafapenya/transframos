@@ -51,10 +51,15 @@ const ProfilePage = () => {
   };
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page profile-page">
       <section className="panel">
         <h2>Mi perfil</h2>
         <p>Edita tu nombre y tu contrasena.</p>
+        {!user?.fullName?.trim() ? (
+          <div className="alert alert-info">
+            Completa tu nombre y apellidos para continuar.
+          </div>
+        ) : null}
 
         <form className="profile-form" onSubmit={handleSubmit}>
           <label>

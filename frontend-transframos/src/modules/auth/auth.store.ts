@@ -133,12 +133,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
-  register: async (fullName: string, email: string, password: string) => {
+  register: async (email: string, password: string) => {
     set({ isLoading: true });
 
     try {
       const response = await authService.register({
-        fullName,
         email,
         password,
       });

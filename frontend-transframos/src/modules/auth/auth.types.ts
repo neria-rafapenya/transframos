@@ -23,9 +23,9 @@ export type LoginRequestDto = {
 };
 
 export type RegisterRequestDto = {
-  fullName: string;
   email: string;
   password: string;
+  fullName?: string;
 };
 
 export type AuthResponseDto = {
@@ -44,7 +44,7 @@ export type AuthState = {
 export type AuthActions = {
   bootstrapAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (payload: {
     fullName?: string;
