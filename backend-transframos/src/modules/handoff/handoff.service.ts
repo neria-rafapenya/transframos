@@ -420,7 +420,10 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
     if (!raw) {
       return false;
     }
-    const normalized = raw.trim().toLowerCase();
+    const normalized = raw
+      .trim()
+      .replace(/^['"]+|['"]+$/g, '')
+      .toLowerCase();
     return ['true', '1', 'yes', 'y'].includes(normalized);
   }
 }
