@@ -41,7 +41,12 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const needsProfile = !user?.fullName?.trim();
 
   if (isAuthenticated) {
-    return <Navigate to={needsProfile ? "/profile" : "/dashboard"} replace />;
+    if (needsProfile) {
+      return <Navigate to="/profile" replace />;
+    }
+    return (
+      <Navigate to={user?.role === "admin" ? "/dashboard" : "/assistant"} replace />
+    );
   }
 
   return children;
@@ -55,7 +60,7 @@ const AdminOnlyRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (user.role !== "admin") {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/assistant" replace />;
   }
 
   return children;
@@ -73,6 +78,31 @@ const UserOnlyRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   return children;
+};
+
+const DefaultRoute = () => {
+  const user = useAuthStore((state) => state.user);
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Navigate to={user.role === "admin" ? "/dashboard" : "/assistant"} replace />
+  );
+};
+
+const CatchAllRoute = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Navigate to={user?.role === "admin" ? "/dashboard" : "/assistant"} replace />
+  );
 };
 
 const AppRouter = () => {
@@ -106,8 +136,15 @@ const AppRouter = () => {
           </PrivateRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route index element={<DefaultRoute />} />
+        <Route
+          path="dashboard"
+          element={
+            <AdminOnlyRoute>
+              <DashboardPage />
+            </AdminOnlyRoute>
+          }
+        />
 
         <Route
           path="assistant"
@@ -174,7 +211,7 @@ const AppRouter = () => {
         }
       />
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<CatchAllRoute />} />
     </Routes>
   );
 };

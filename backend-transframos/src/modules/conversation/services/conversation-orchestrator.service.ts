@@ -52,6 +52,21 @@ export class ConversationOrchestratorService {
       });
     }
 
+    const orderNumber = this.extractOrderNumber(params.userMessage);
+    const shouldRepeat =
+      Boolean(orderNumber) &&
+      (this.detectRepeatOrderIntent(params.userMessage) ||
+        params.userMessage.trim().toUpperCase() === orderNumber);
+    if (shouldRepeat && orderNumber) {
+      return this.buildRepeatOrderResponse({
+        sessionId: params.sessionId,
+        userId: params.userId,
+        user,
+        orderNumber,
+        quoteRequest,
+      });
+    }
+
     const extraction = await this.extractConversationData(params);
 
     await this.persistWizardStates(params.sessionId, extraction);
@@ -1562,6 +1577,298 @@ Formato:
       return `Perfecto, voy a repetir el pedido ${orderNumber}. ¿Quieres mantener las mismas fechas de transporte o deseas cambiarlas?`;
     }
     return 'Para repetir un pedido necesito el número de pedido (formato ORD-YYYYMMDD-XXXX) o confirmar que la fecha indicada corresponde a la creación del pedido. ¿Me lo puedes indicar?';
+  }
+
+  private buildEmptyExtraction(intent = 'repeat_order'): LlmExtractionInterface {
+    return {
+      intent,
+      extractedFields: {
+        productText: null,
+        quantityValue: null,
+        quantityUnit: null,
+        originText: null,
+        destinationText: null,
+        originLat: null,
+        originLon: null,
+        destinationLat: null,
+        destinationLon: null,
+        originAddressText: null,
+        originContactName: null,
+        originContactPhone: null,
+        destinationAddressText: null,
+        destinationContactName: null,
+        destinationContactPhone: null,
+        requestedPickupAt: null,
+        deliveryDeadlineAt: null,
+      },
+      missingFields: [],
+      nextBestQuestion: null,
+      confidence: null,
+    };
+  }
+
+  private buildLocationLabel(point: {
+    city?: string | null;
+    postalCode?: string | null;
+    name?: string | null;
+  } | null): string | null {
+    if (!point) {
+      return null;
+    }
+    const parts = [point.city?.trim(), point.postalCode?.trim()].filter(Boolean);
+    if (parts.length > 0) {
+      return parts.join(' ');
+    }
+    return point.name?.trim() ?? null;
+  }
+
+  private async upsertWizardValue(
+    sessionId: string,
+    stepCode: string,
+    rawValueText: string | null,
+    valueJson?: Record<string, unknown> | null,
+  ) {
+    if (!rawValueText) {
+      return;
+    }
+
+    await this.wizardService.upsertSessionStepState(sessionId, stepCode, {
+      status: 'completed',
+      rawValueText,
+      valueJson: valueJson ?? undefined,
+    });
+  }
+
+  private async buildRepeatOrderResponse(params: {
+    sessionId: string;
+    userId: string;
+    user: {
+      fullName: string;
+      email: string;
+      contactName?: string | null;
+      contactPhone?: string | null;
+    };
+    orderNumber: string;
+    quoteRequest: { id: string };
+  }) {
+    let order;
+    try {
+      order = await this.ordersService.getOrderByNumberForUser(
+        params.userId,
+        params.orderNumber,
+      );
+    } catch {
+      const wizardStates = await this.wizardService.getSessionStepStates(
+        params.sessionId,
+      );
+      const missingFields = this.getMissingFieldsFromWizardStates(wizardStates);
+      const context: QuoteContextInterface = {
+        quoteRequest: await this.quoteService.getQuoteRequestEntityById(
+          params.quoteRequest.id,
+        ),
+        wizardStates,
+        topOption: null,
+        missingFields,
+      };
+      const routePreview = await this.buildRoutePreview(context);
+      return {
+        extraction: this.buildEmptyExtraction('repeat_order'),
+        context,
+        validationSummary: null,
+        assistantMessage: `No encuentro el pedido ${params.orderNumber}. ¿Puedes comprobar el número o indicar la fecha de creación exacta?`,
+        routePreview,
+      };
+    }
+
+    const [product, originPoint, destinationPoint] = await Promise.all([
+      this.catalogRepository.findProductById(order.productId),
+      this.catalogRepository.findLoadingPointById(order.originLoadingPointId),
+      this.catalogRepository.findUnloadingPointById(
+        order.destinationUnloadingPointId,
+      ),
+    ]);
+
+    const productLabel =
+      product?.commercialName ?? product?.name ?? product?.code ?? 'Producto';
+    const originText = this.buildLocationLabel(originPoint);
+    const destinationText = this.buildLocationLabel(destinationPoint);
+
+    const pickupAt = order.requestedPickupDatetime ?? null;
+    const deliveryAt = order.requestedDeliveryDatetime ?? null;
+    const quantityValue = order.orderedVolumeLiters ?? null;
+    const quantityUnit = 'litros';
+
+    await this.quoteService.updateQuoteRequestData(params.quoteRequest.id, {
+      productText: productLabel,
+      productId: order.productId,
+      categoryId: order.categoryId,
+      quantityValue,
+      quantityUnit,
+      originLocationId: order.originLoadingPointId,
+      destinationLocationId: order.destinationUnloadingPointId,
+      originText,
+      destinationText,
+      requestedPickupAt: pickupAt,
+      deliveryDeadlineAt: deliveryAt,
+      validationStatus: 'pending',
+      wizardStatus: 'idle',
+    });
+
+    await this.upsertWizardValue(params.sessionId, 'product', productLabel, {
+      productText: productLabel,
+    });
+
+    if (quantityValue !== null) {
+      await this.upsertWizardValue(
+        params.sessionId,
+        'quantity',
+        `${quantityValue} ${quantityUnit}`,
+        {
+          quantityValue,
+          quantityUnit,
+        },
+      );
+    }
+
+    if (originText) {
+      await this.upsertWizardValue(params.sessionId, 'origin', originText, {
+        originText,
+        originLat: originPoint?.latitude ?? null,
+        originLon: originPoint?.longitude ?? null,
+      });
+    }
+
+    if (destinationText) {
+      await this.upsertWizardValue(
+        params.sessionId,
+        'destination',
+        destinationText,
+        {
+          destinationText,
+          destinationLat: destinationPoint?.latitude ?? null,
+          destinationLon: destinationPoint?.longitude ?? null,
+        },
+      );
+    }
+
+    await this.upsertWizardValue(
+      params.sessionId,
+      'origin_address',
+      originPoint?.addressLine1 ?? null,
+    );
+    await this.upsertWizardValue(
+      params.sessionId,
+      'destination_address',
+      destinationPoint?.addressLine1 ?? null,
+    );
+
+    const contactName = params.user.contactName ?? params.user.fullName;
+    const contactPhone = params.user.contactPhone ?? null;
+    if (contactName) {
+      await this.upsertWizardValue(
+        params.sessionId,
+        'origin_contact_name',
+        contactName,
+      );
+      await this.upsertWizardValue(
+        params.sessionId,
+        'destination_contact_name',
+        contactName,
+      );
+    }
+
+    if (contactPhone) {
+      await this.upsertWizardValue(
+        params.sessionId,
+        'origin_contact_phone',
+        contactPhone,
+      );
+      await this.upsertWizardValue(
+        params.sessionId,
+        'destination_contact_phone',
+        contactPhone,
+      );
+    }
+
+    if (pickupAt) {
+      await this.upsertWizardValue(
+        params.sessionId,
+        'requested_date',
+        pickupAt.toISOString(),
+        { requestedPickupAt: pickupAt.toISOString() },
+      );
+    }
+
+    if (deliveryAt) {
+      await this.upsertWizardValue(
+        params.sessionId,
+        'delivery_deadline',
+        deliveryAt.toISOString(),
+        { deliveryDeadlineAt: deliveryAt.toISOString() },
+      );
+    }
+
+    const refreshedQuoteRequest =
+      await this.quoteService.getQuoteRequestEntityById(
+        params.quoteRequest.id,
+      );
+    const wizardStates = await this.wizardService.getSessionStepStates(
+      params.sessionId,
+    );
+
+    let missingFields = this.getMissingFieldsFromWizardStates(wizardStates);
+    missingFields = this.appendPostalCodeMissing(
+      missingFields,
+      refreshedQuoteRequest,
+    );
+
+    let validationSummary: Record<string, unknown> | null = null;
+    let topOption: QuoteOptionEntity | null = null;
+    let hasFailedValidations = false;
+
+    if (missingFields.length === 0) {
+      validationSummary = await this.rulesService.validateQuoteRequest(
+        refreshedQuoteRequest.id,
+        {
+          clearPreviousResults: true,
+        },
+      );
+
+      hasFailedValidations = Array.isArray(validationSummary.results)
+        ? validationSummary.results.some(
+            (item: { validationStatus?: string }) =>
+              item.validationStatus === 'failed',
+          )
+        : false;
+
+      if (!hasFailedValidations) {
+        topOption = await this.pricingService.calculateBestOption(
+          refreshedQuoteRequest.id,
+        );
+      }
+    }
+
+    const context: QuoteContextInterface = {
+      quoteRequest: refreshedQuoteRequest,
+      wizardStates,
+      topOption,
+      missingFields,
+    };
+
+    const routePreview = await this.buildRoutePreview(context);
+    const assistantMessage =
+      `He cargado los datos del pedido ${params.orderNumber}. ` +
+      (missingFields.length === 0
+        ? 'Si quieres repetirlo tal cual, escribe "tramitar". Si quieres cambiar algo, dímelo.'
+        : 'Si quieres cambiar algún dato antes de tramitar, indícalo. También puedes completar los datos que falten.');
+
+    return {
+      extraction: this.buildEmptyExtraction('repeat_order'),
+      context,
+      validationSummary,
+      assistantMessage,
+      routePreview,
+    };
   }
 
   private extractOrderNumber(message: string): string | null {

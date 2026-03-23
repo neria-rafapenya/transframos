@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Headset, SendHorizonal } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { io, type Socket } from "socket.io-client";
 import { useAuthStore } from "@/modules/auth/auth.store";
 import { useAssistantStore } from "@/modules/assistant/assistant.store";
+import { ordersApi, type OrderSummary } from "@/modules/orders/orders.api";
 import RoutePreviewMap from "./RoutePreviewMap";
 import SpinnerDots from "@/components/shared/SpinnerDots";
 import Tippy from "@tippyjs/react";
@@ -93,6 +94,9 @@ const AssistantPage = () => {
   const copyToastTimerRef = useRef<number | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [recentOrders, setRecentOrders] = useState<OrderSummary[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionId && user) {
@@ -106,6 +110,43 @@ const AssistantPage = () => {
       });
     }
   }, [sessionId, startConversation, user]);
+
+  useEffect(() => {
+    if (!user) {
+      setRecentOrders([]);
+      return;
+    }
+
+    let active = true;
+    setOrdersLoading(true);
+    setOrdersError(null);
+
+    ordersApi
+      .getOrders(10)
+      .then((data) => {
+        if (active) {
+          setRecentOrders(data ?? []);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setOrdersError(
+            err instanceof Error
+              ? err.message
+              : "No se pudieron cargar los pedidos",
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setOrdersLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     return () => {
@@ -394,6 +435,23 @@ const AssistantPage = () => {
     return trimmed;
   };
 
+  const formatOrderDate = (value: string | null | undefined) => {
+    if (!value) {
+      return "—";
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(parsed);
+  };
+
   const getFirstText = (
     candidates: Array<string | null | undefined>,
     fallback = "—",
@@ -525,8 +583,7 @@ const AssistantPage = () => {
       return humanSocketRef.current;
     }
 
-    const forcePolling =
-      import.meta.env.VITE_HANDOFF_FORCE_POLLING === "true";
+    const forcePolling = import.meta.env.VITE_HANDOFF_FORCE_POLLING === "true";
     const socket = io(HANDOFF_SOCKET_URL, {
       transports: forcePolling ? ["polling"] : ["polling", "websocket"],
       withCredentials: true,
@@ -581,8 +638,7 @@ const AssistantPage = () => {
       if (isSelfEcho) {
         return;
       }
-      const text =
-        typeof payload?.text === "string" ? payload.text.trim() : "";
+      const text = typeof payload?.text === "string" ? payload.text.trim() : "";
       if (!text) {
         return;
       }
@@ -831,7 +887,9 @@ const AssistantPage = () => {
                     </span>
                   </Tippy>
                   <Tippy
-                    content={copyFeedbackId === "welcome" ? "Copiado" : "Copiar"}
+                    content={
+                      copyFeedbackId === "welcome" ? "Copiado" : "Copiar"
+                    }
                   >
                     <span>
                       <button
@@ -1088,6 +1146,42 @@ const AssistantPage = () => {
             </div>
           </div>
         ) : null}
+
+        <div className="orders-mini">
+          <div className="orders-mini__header">
+            <h6>Pedidos recientes</h6>
+          </div>
+          <div className="orders-mini__row orders-mini__row--head">
+            <span>Pedido</span>
+            <span>Creado</span>
+          </div>
+          {ordersLoading ? (
+            <div className="orders-mini__row">
+              <span>Cargando...</span>
+              <span />
+            </div>
+          ) : null}
+          {ordersError ? (
+            <div className="orders-mini__row">
+              <span>{ordersError}</span>
+              <span />
+            </div>
+          ) : null}
+          {!ordersLoading && !ordersError && recentOrders.length === 0 ? (
+            <div className="orders-mini__row">
+              <span>Sin pedidos todavía</span>
+              <span />
+            </div>
+          ) : null}
+          {recentOrders.map((order) => (
+            <div key={order.id} className="orders-mini__row">
+              <Link className="orders-mini__link" to={`/orders/${order.id}`}>
+                {order.orderNumber}
+              </Link>
+              <span>{formatOrderDate(order.createdAt)}</span>
+            </div>
+          ))}
+        </div>
 
         {/* <div className="draft-grid">
           <div>

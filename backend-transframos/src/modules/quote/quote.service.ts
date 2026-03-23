@@ -59,6 +59,14 @@ export class QuoteService {
     return this.quoteRepository.findQuoteOptionsByRequestId(id);
   }
 
+  async findQuoteRequestByConversationSessionId(
+    conversationSessionId: string,
+  ) {
+    return this.quoteRepository.findQuoteRequestByConversationSessionId(
+      conversationSessionId,
+    );
+  }
+
   async getValidationResults(id: string) {
     return this.quoteRepository.findValidationResultsByRequestId(id);
   }
@@ -83,11 +91,15 @@ export class QuoteService {
   async updateQuoteRequestData(
     id: string,
     params: {
+      productText?: string | null;
       productId?: string | null;
+      categoryId?: string | null;
       quantityValue?: number | null;
       quantityUnit?: string | null;
       originLocationId?: string | null;
       destinationLocationId?: string | null;
+      originText?: string | null;
+      destinationText?: string | null;
       requestedPickupAt?: Date | null;
       deliveryDeadlineAt?: Date | null;
       rawRequestJson?: Record<string, unknown> | null;
@@ -111,10 +123,20 @@ export class QuoteService {
     }
 
     return this.quoteRepository.updateQuoteRequest(id, {
+      requestedProductText:
+        typeof params.productText !== 'undefined'
+          ? params.productText ?? 'Pendiente'
+          : undefined,
       requestedProductId:
         typeof params.productId !== 'undefined'
           ? params.productId !== null
             ? String(params.productId)
+            : null
+          : undefined,
+      requestedCategoryId:
+        typeof params.categoryId !== 'undefined'
+          ? params.categoryId !== null
+            ? String(params.categoryId)
             : null
           : undefined,
       requestedVolumeLiters:
@@ -124,6 +146,14 @@ export class QuoteService {
       requestedMode:
         typeof params.quantityUnit !== 'undefined'
           ? params.quantityUnit
+          : undefined,
+      originText:
+        typeof params.originText !== 'undefined'
+          ? params.originText
+          : undefined,
+      destinationText:
+        typeof params.destinationText !== 'undefined'
+          ? params.destinationText
           : undefined,
       originLoadingPointId:
         typeof params.originLocationId !== 'undefined'

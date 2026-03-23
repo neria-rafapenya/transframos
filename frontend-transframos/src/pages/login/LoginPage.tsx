@@ -28,7 +28,7 @@ const LoginPage = ({ initialMode = "login" }: { initialMode?: AuthMode }) => {
       navigate("/profile");
       return;
     }
-    navigate("/dashboard");
+    navigate(currentUser.role === "admin" ? "/dashboard" : "/assistant");
   };
 
   const handleLoginSubmit = async (

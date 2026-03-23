@@ -131,6 +131,10 @@ export class OrdersRepository {
     return this.orderRepository.findOne({ where: { id } });
   }
 
+  async findOrderByOrderNumber(orderNumber: string) {
+    return this.orderRepository.findOne({ where: { orderNumber } });
+  }
+
   async findOrderByClientReference(clientReference: string) {
     return this.orderRepository.findOne({
       where: { clientReference },

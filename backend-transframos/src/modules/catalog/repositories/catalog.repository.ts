@@ -146,6 +146,12 @@ export class CatalogRepository {
     });
   }
 
+  async findVehicleById(id: string) {
+    return this.vehicleRepository.findOne({
+      where: { id },
+    });
+  }
+
   async findAllVehicleAvailability() {
     return this.vehicleAvailabilityRepository.find({
       order: {

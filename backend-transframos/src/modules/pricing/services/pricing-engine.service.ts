@@ -417,10 +417,8 @@ export class PricingEngineService {
       );
     }
 
-    const selectedVehicleId = selectedTankId ? selectedVehicle?.id ?? null : null;
-    const selectedVehicleCode = selectedTankId
-      ? selectedVehicle?.code ?? null
-      : null;
+    const selectedVehicleId = selectedVehicle?.id ?? null;
+    const selectedVehicleCode = selectedVehicle?.code ?? null;
 
     return {
       vehicleTypeId: selectedVehicleId,

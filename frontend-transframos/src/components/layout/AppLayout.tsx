@@ -60,11 +60,6 @@ const AppLayout = () => {
 
     return [
       {
-        to: "/dashboard",
-        label: "Dashboard",
-        icon: <LayoutDashboard size={18} />,
-      },
-      {
         to: "/assistant",
         label: "Asistente IA",
         icon: <MessageSquareText size={18} />,
