@@ -40,11 +40,11 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
     }
 
     const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
-    const chatId = this.configService.get<string>('TELEGRAM_CHAT_ID');
+    const allowedChatIds = this.getAllowedChatIds();
 
-    if (!token || !chatId) {
+    if (!token || allowedChatIds.length === 0) {
       this.logger.warn(
-        'Telegram polling habilitado pero faltan TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID.',
+        'Telegram polling habilitado pero faltan TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID(S).',
       );
       return;
     }
@@ -150,7 +150,16 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
     this.closeSession(sessionId);
   }
 
-  async handleTelegramText(text: string, from?: string) {
+  async handleTelegramText(
+    text: string,
+    from?: string,
+    chatId?: string | number | null,
+  ) {
+    if (chatId !== undefined && !this.isAllowedChatId(chatId)) {
+      this.logger.warn('Mensaje de Telegram ignorado (chat no autorizado).');
+      return;
+    }
+
     const command = text.trim().toLowerCase();
     if (command === '/cerrar' || command === 'cerrar' || command === 'finalizar') {
       await this.closeLatestSessionFromTelegram();
@@ -231,33 +240,35 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
 
   private async sendTelegramMessage(text: string) {
     const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
-    const chatId = this.configService.get<string>('TELEGRAM_CHAT_ID');
+    const chatIds = this.getAllowedChatIds();
 
-    if (!token || !chatId) {
+    if (!token || chatIds.length === 0) {
       return;
     }
 
-    try {
-      const response = await fetch(
-        `https://api.telegram.org/bot${token}/sendMessage`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+    for (const chatId of chatIds) {
+      try {
+        const response = await fetch(
+          `https://api.telegram.org/bot${token}/sendMessage`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text,
+            }),
           },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text,
-          }),
-        },
-      );
+        );
 
-      if (!response.ok) {
-        const payload = await response.text();
-        this.logger.warn(`Telegram error: ${payload}`);
+        if (!response.ok) {
+          const payload = await response.text();
+          this.logger.warn(`Telegram error: ${payload}`);
+        }
+      } catch (error) {
+        this.logger.warn(`Telegram error: ${String(error)}`);
       }
-    } catch (error) {
-      this.logger.warn(`Telegram error: ${String(error)}`);
     }
   }
 
@@ -299,8 +310,8 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
     }
 
     const token = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
-    const chatId = this.configService.get<string>('TELEGRAM_CHAT_ID');
-    if (!token || !chatId) {
+    const allowedChatIds = this.getAllowedChatIds();
+    if (!token || allowedChatIds.length === 0) {
       this.scheduleNextPoll(5000);
       return;
     }
@@ -360,10 +371,7 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
           continue;
         }
 
-        const chatMatches =
-          message?.chat?.id !== undefined &&
-          String(message.chat.id) === String(chatId);
-        if (!chatMatches) {
+        if (!this.isAllowedChatId(message?.chat?.id ?? null)) {
           continue;
         }
 
@@ -373,7 +381,7 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
             from.username
           : undefined;
 
-        await this.handleTelegramText(text, fromLabel);
+        await this.handleTelegramText(text, fromLabel, message?.chat?.id ?? null);
       }
 
       if (maxUpdateId !== null) {
@@ -425,5 +433,30 @@ export class HandoffService implements OnModuleInit, OnModuleDestroy {
       .replace(/^['"]+|['"]+$/g, '')
       .toLowerCase();
     return ['true', '1', 'yes', 'y'].includes(normalized);
+  }
+
+  private getAllowedChatIds(): string[] {
+    const rawList = this.configService.get<string>('TELEGRAM_CHAT_IDS');
+    const fallback = this.configService.get<string>('TELEGRAM_CHAT_ID');
+    const source = rawList && rawList.trim().length > 0 ? rawList : fallback;
+    if (!source) {
+      return [];
+    }
+    const tokens = source
+      .split(/[,\s]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return Array.from(new Set(tokens));
+  }
+
+  private isAllowedChatId(chatId: string | number | null | undefined): boolean {
+    if (chatId === null || typeof chatId === 'undefined') {
+      return false;
+    }
+    const allowed = this.getAllowedChatIds();
+    if (allowed.length === 0) {
+      return false;
+    }
+    return allowed.includes(String(chatId));
   }
 }

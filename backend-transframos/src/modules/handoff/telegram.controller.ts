@@ -5,6 +5,9 @@ import { HandoffService } from './handoff.service';
 type TelegramUpdate = {
   message?: {
     text?: string;
+    chat?: {
+      id?: string | number;
+    };
     from?: {
       first_name?: string;
       last_name?: string;
@@ -42,7 +45,8 @@ export class TelegramController {
         from.username
       : undefined;
 
-    await this.handoffService.handleTelegramText(text, fromLabel);
+    const chatId = update.message?.chat?.id ?? null;
+    await this.handoffService.handleTelegramText(text, fromLabel, chatId);
 
     return { ok: true };
   }
