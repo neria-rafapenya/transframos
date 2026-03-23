@@ -71,8 +71,10 @@ const DashboardPage = () => {
       return humanSocketRef.current;
     }
 
+    const forcePolling =
+      import.meta.env.VITE_HANDOFF_FORCE_POLLING === "true";
     const socket = io(HANDOFF_SOCKET_URL, {
-      transports: ["websocket"],
+      transports: forcePolling ? ["polling"] : ["polling", "websocket"],
       withCredentials: true,
     });
     humanSocketRef.current = socket;
