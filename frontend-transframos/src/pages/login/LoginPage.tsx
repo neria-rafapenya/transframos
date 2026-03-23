@@ -66,21 +66,6 @@ const LoginPage = ({ initialMode = "login" }: { initialMode?: AuthMode }) => {
   return (
     <div className="login-page">
       <div className={`login-card auth-card auth-card--${mode}`}>
-        <button
-          type="button"
-          className="login-card__close"
-          aria-label="Cerrar"
-          onClick={() => navigate(-1)}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M6 6L18 18M18 6L6 18"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
         <div className="login-card__header text-center">
           <Logotipo width={188} height={48} color="#00A58F" />
 
