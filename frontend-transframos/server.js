@@ -21,8 +21,20 @@ const proxyConfig = {
   logLevel: process.env.PROXY_LOG_LEVEL || "warn",
 };
 
-app.use("/api", createProxyMiddleware(proxyConfig));
-app.use("/handoff", createProxyMiddleware(proxyConfig));
+app.use(
+  "/api",
+  createProxyMiddleware({
+    ...proxyConfig,
+    pathRewrite: (path) => `/api${path}`,
+  }),
+);
+app.use(
+  "/handoff",
+  createProxyMiddleware({
+    ...proxyConfig,
+    pathRewrite: (path) => `/handoff${path}`,
+  }),
+);
 
 const distDir = path.join(__dirname, "dist");
 app.use(express.static(distDir, { index: false }));
