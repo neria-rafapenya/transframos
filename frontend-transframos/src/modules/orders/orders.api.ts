@@ -13,8 +13,28 @@ export type OrderDetail = OrderSummary & {
   quoteId: string | null;
   productId: string;
   categoryId: string;
+  productName?: string | null;
   originLoadingPointId: string;
   destinationUnloadingPointId: string;
+  origin?: {
+    city?: string | null;
+    postalCode?: string | null;
+    addressLine1?: string | null;
+    contactName?: string | null;
+    contactPhone?: string | null;
+  } | null;
+  destination?: {
+    city?: string | null;
+    postalCode?: string | null;
+    addressLine1?: string | null;
+    contactName?: string | null;
+    contactPhone?: string | null;
+  } | null;
+  requesterName?: string | null;
+  proposedVehicle?: {
+    code?: string | null;
+    plate?: string | null;
+  } | null;
   confirmedPickupDatetime: string | null;
   confirmedDeliveryDatetime: string | null;
   orderedVolumeLiters: number;

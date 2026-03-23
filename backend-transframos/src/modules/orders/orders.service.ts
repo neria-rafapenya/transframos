@@ -101,6 +101,99 @@ export class OrdersService {
       throw new NotFoundException('Pedido no encontrado');
     }
 
+    const [product, originPoint, destinationPoint] = await Promise.all([
+      this.catalogRepository.findProductById(order.productId),
+      this.catalogRepository.findLoadingPointById(order.originLoadingPointId),
+      this.catalogRepository.findUnloadingPointById(
+        order.destinationUnloadingPointId,
+      ),
+    ]);
+
+    const contactName = user.contactName ?? user.fullName;
+    const contactPhone = user.contactPhone ?? null;
+
+    let proposedVehicleCode: string | null = null;
+    let proposedVehiclePlate: string | null = null;
+
+    if (order.clientReference) {
+      const quoteRequest =
+        await this.quoteService.findQuoteRequestByConversationSessionId(
+          order.clientReference,
+        );
+      if (quoteRequest) {
+        const options = await this.quoteService.getQuoteOptions(
+          quoteRequest.id,
+        );
+        const topOption = options[0] ?? null;
+        if (topOption) {
+          const reasoning = this.safeParseJson(topOption.reasoningJson);
+          if (reasoning) {
+            if (typeof reasoning.selectedVehicleCode === 'string') {
+              proposedVehicleCode = reasoning.selectedVehicleCode;
+            } else if (typeof reasoning.vehicle === 'string') {
+              proposedVehicleCode = reasoning.vehicle;
+            }
+          }
+
+          const vehicleId = topOption.vehicleTypeId;
+          if (vehicleId) {
+            const vehicle = await this.catalogRepository.findVehicleById(
+              vehicleId,
+            );
+            proposedVehiclePlate = vehicle?.plateNumber ?? null;
+            if (!proposedVehicleCode) {
+              proposedVehicleCode = vehicle?.code ?? null;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      ...order,
+      productName:
+        product?.commercialName ?? product?.name ?? product?.code ?? null,
+      requesterName: user.fullName ?? null,
+      origin: originPoint
+        ? {
+            city: originPoint.city,
+            postalCode: originPoint.postalCode,
+            addressLine1: originPoint.addressLine1,
+            contactName,
+            contactPhone,
+          }
+        : null,
+      destination: destinationPoint
+        ? {
+            city: destinationPoint.city,
+            postalCode: destinationPoint.postalCode,
+            addressLine1: destinationPoint.addressLine1,
+            contactName,
+            contactPhone,
+          }
+        : null,
+      proposedVehicle: proposedVehicleCode
+        ? {
+            code: proposedVehicleCode,
+            plate: proposedVehiclePlate,
+          }
+        : null,
+    };
+  }
+
+  async getOrderByNumberForUser(userId: string, orderNumber: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user.clientId) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+
+    const order = await this.ordersRepository.findOrderByOrderNumber(
+      orderNumber,
+    );
+    if (!order || order.clientId !== user.clientId) {
+      throw new NotFoundException('Pedido no encontrado');
+    }
+
     return order;
   }
 
@@ -218,18 +311,18 @@ export class OrdersService {
       destinationUnloadingPointId: destinationPoint.id,
       requestedPickupDatetime,
       requestedDeliveryDatetime,
-      confirmedPickupDatetime: requestedPickupDatetime,
-      confirmedDeliveryDatetime: requestedDeliveryDatetime,
+      confirmedPickupDatetime: null,
+      confirmedDeliveryDatetime: null,
       orderedVolumeLiters: orderedVolume,
       orderedWeightTn: params.quoteRequest.requestedWeightTn ?? null,
       serviceMode: 'road',
-      orderStatus: 'closed',
+      orderStatus: 'open',
       priorityLevel: null,
       clientReference:
         params.quoteRequest.externalReference ??
         params.quoteRequest.conversationSessionId ??
         null,
-      internalNotes: `Pedido cerrado desde asistente IA. QuoteRequest ${params.quoteRequest.id}.`,
+      internalNotes: `Pedido tramitado desde asistente IA. QuoteRequest ${params.quoteRequest.id}.`,
     });
 
     const quoteOptionId = params.topOption?.id ?? null;
@@ -248,7 +341,7 @@ export class OrdersService {
       orderedVolumeLiters: orderedVolume,
       orderedWeightTn: params.quoteRequest.requestedWeightTn ?? null,
       serviceMode: 'road',
-      orderStatus: 'closed',
+      orderStatus: 'open',
     };
 
     if (closedDraft) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ordersApi, type OrderDetail } from "@/modules/orders/orders.api";
 
 const formatDate = (value: string | null) => {
@@ -19,8 +19,42 @@ const formatDate = (value: string | null) => {
   }).format(parsed);
 };
 
+const formatConfirmedDate = (value: string | null) => {
+  if (!value) {
+    return "Pendiente";
+  }
+  return formatDate(value);
+};
+
+const formatLocation = (
+  location:
+    | {
+        city?: string | null;
+        postalCode?: string | null;
+        addressLine1?: string | null;
+        contactName?: string | null;
+        contactPhone?: string | null;
+      }
+    | null
+    | undefined,
+) => {
+  if (!location) {
+    return "—";
+  }
+  const place = [location.city, location.postalCode].filter(Boolean).join(" ");
+  const address = location.addressLine1 ?? null;
+  const contactParts = [
+    location.contactName ?? null,
+    location.contactPhone ? `(${location.contactPhone})` : null,
+  ].filter(Boolean);
+  const contact =
+    contactParts.length > 0 ? `Responsable: ${contactParts.join(" ")}` : null;
+  return [place, address, contact].filter(Boolean).join(" · ");
+};
+
 const OrderDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +101,19 @@ const OrderDetailPage = () => {
             <h2>Detalle del pedido</h2>
             <p>Informacion principal del pedido tramitado.</p>
           </div>
-          <Link className="secondary-button" to="/orders">
-            Volver a pedidos
-          </Link>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+                return;
+              }
+              navigate("/orders");
+            }}
+          >
+            Volver
+          </button>
         </div>
 
         {isLoading ? <p>Cargando pedido...</p> : null}
@@ -87,20 +131,44 @@ const OrderDetailPage = () => {
                 <strong>{order.orderStatus}</strong>
               </div>
               <div>
+                <span>Producto</span>
+                <strong>{order.productName ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Tramitado por</span>
+                <strong>{order.requesterName ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Vehículo propuesto</span>
+                <strong>{order.proposedVehicle?.code ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Matrícula</span>
+                <strong>{order.proposedVehicle?.plate ?? "—"}</strong>
+              </div>
+              <div>
                 <span>Recogida solicitada</span>
                 <strong>{formatDate(order.requestedPickupDatetime)}</strong>
+                <span className="order-detail__meta">
+                  {formatLocation(order.origin)}
+                </span>
               </div>
               <div>
                 <span>Entrega solicitada</span>
                 <strong>{formatDate(order.requestedDeliveryDatetime)}</strong>
+                <span className="order-detail__meta">
+                  {formatLocation(order.destination)}
+                </span>
               </div>
               <div>
                 <span>Recogida confirmada</span>
-                <strong>{formatDate(order.confirmedPickupDatetime)}</strong>
+                <strong>{formatConfirmedDate(order.confirmedPickupDatetime)}</strong>
               </div>
               <div>
                 <span>Entrega confirmada</span>
-                <strong>{formatDate(order.confirmedDeliveryDatetime)}</strong>
+                <strong>
+                  {formatConfirmedDate(order.confirmedDeliveryDatetime)}
+                </strong>
               </div>
               <div>
                 <span>Volumen</span>

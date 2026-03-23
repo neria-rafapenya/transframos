@@ -21,6 +21,7 @@ type UpdateQuoteRequestParams = {
   deliveryDeadlineDatetime?: Date | null;
   extractedJson?: Record<string, unknown> | null;
   requestedProductId?: string | null;
+  requestedCategoryId?: string | null;
   originLoadingPointId?: string | null;
   destinationUnloadingPointId?: string | null;
   clientId?: string | null;
@@ -138,6 +139,10 @@ export class QuoteRepository {
         typeof params.requestedProductId !== 'undefined'
           ? params.requestedProductId
           : existing.requestedProductId,
+      requestedCategoryId:
+        typeof params.requestedCategoryId !== 'undefined'
+          ? params.requestedCategoryId
+          : existing.requestedCategoryId,
       originLoadingPointId:
         typeof params.originLoadingPointId !== 'undefined'
           ? params.originLoadingPointId
