@@ -4,13 +4,21 @@ import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const buildTarget = (env.VITE_BUILD_TARGET || "widget").toLowerCase();
+
+  const baseConfig = {
+    plugins: [react()],
+    resolve: {
+      tsconfigPaths: true,
+    },
+    define: {
+      __APP_ENV__: JSON.stringify(env.APP_ENV || mode),
+    },
+  };
 
   if (command === "serve") {
     return {
-      plugins: [react()],
-      resolve: {
-        tsconfigPaths: true,
-      },
+      ...baseConfig,
       server: {
         host: "0.0.0.0",
         port: Number(env.PORT) || 5200,
@@ -19,20 +27,23 @@ export default defineConfig(({ command, mode }) => {
         host: "0.0.0.0",
         port: Number(env.PORT) || 5200,
       },
-      define: {
-        __APP_ENV__: JSON.stringify(env.APP_ENV || mode),
+    };
+  }
+
+  if (buildTarget === "app") {
+    return {
+      ...baseConfig,
+      build: {
+        outDir: "dist",
+        emptyOutDir: true,
+        sourcemap: false,
       },
     };
   }
 
   return {
+    ...baseConfig,
     plugins: [react(), cssInjectedByJsPlugin()],
-    resolve: {
-      tsconfigPaths: true,
-    },
-    define: {
-      __APP_ENV__: JSON.stringify(env.APP_ENV || mode),
-    },
     build: {
       outDir: "dist",
       emptyOutDir: true,
