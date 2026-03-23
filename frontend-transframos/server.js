@@ -21,18 +21,27 @@ const proxyConfig = {
   logLevel: process.env.PROXY_LOG_LEVEL || "warn",
 };
 
+const rewriteToOriginalUrl = (path, req) => req.originalUrl || path;
+
 app.use(
   "/api",
   createProxyMiddleware({
     ...proxyConfig,
-    pathRewrite: (path) => `/api${path}`,
+    pathRewrite: rewriteToOriginalUrl,
   }),
 );
 app.use(
   "/handoff",
   createProxyMiddleware({
     ...proxyConfig,
-    pathRewrite: (path) => `/handoff${path}`,
+    pathRewrite: rewriteToOriginalUrl,
+  }),
+);
+app.use(
+  "/socket.io",
+  createProxyMiddleware({
+    ...proxyConfig,
+    pathRewrite: rewriteToOriginalUrl,
   }),
 );
 
